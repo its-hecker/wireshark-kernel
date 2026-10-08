@@ -9,7 +9,7 @@ git config --global user.email 'builder@users.noreply.github.com'
 repo init -u https://android.googlesource.com/kernel/manifest -b android-msm-coral-4.14-android13 --depth=1
 repo sync -c -j4 --no-tags --fail-fast
 rm -rf private/msm-google
-git clone --depth=1 --branch cnb --recurse-submodules --shallow-submodules https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14.git private/msm-google
+git clone --depth=1 --branch cnb --recurse-submodules https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14.git private/msm-google
 kernel_sha=$(git -C private/msm-google rev-parse HEAD)
 repo manifest -r -o "$project/dist/workspace-manifest.xml"
 git -C private/msm-google submodule status --recursive > "$project/dist/kernel-submodules.txt"

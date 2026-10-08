@@ -14,6 +14,7 @@ supported.vendorpatchlevels=
 
 BLOCK=boot
 IS_SLOT_DEVICE=1
+SLOT_SELECT=active
 RAMDISK_COMPRESSION=auto
 PATCH_VBMETA_FLAG=0
 . tools/ak3-core.sh
@@ -26,7 +27,7 @@ while read -r expected name; do
   case "$name" in *[!A-Za-z0-9_.-]*) abort "Invalid module name.";; esac
   matched=0
   for root in /vendor/lib/modules /system/vendor/lib/modules /vendor_dlkm/lib/modules /system/lib/modules; do
-    for candidate in $(find "$root" -type f -name "$name" 2>/dev/null); do
+    for candidate in $(find -L "$root" -type f -name "$name" 2>/dev/null); do
       actual=$(sha256sum "$candidate" | cut -d' ' -f1)
       [ "$actual" = "$expected" ] && matched=1
     done
