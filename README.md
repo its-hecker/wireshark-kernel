@@ -1,8 +1,10 @@
 # WireShark kernel — Pixel 4 XL
 
-Build and package the kernel source in this repository as an AnyKernel3 ZIP for **coral only**. The default source branch is `cnb-optimized`; select `cnb` under Run workflow to build the unchanged baseline. KernelSU/SUSFS settings come from the source's `floral_defconfig`; this repository does not change them.
+Build and package the kernel source in this repository as an AnyKernel3 ZIP for **coral only**. The default source branch is `cnb-optimized`; select `cnb` under Run workflow to build the unchanged baseline. KernelSU settings come from the source's `floral_defconfig`; the resolved build config is included with every successful artifact.
 
 The initial optimization set adapts three Sultan suspend/wakeup fixes: detect wakeups even when freezing just completed, preserve wakeups from suspend callbacks, and avoid repeated s2idle wake calls. Source details and host regression tests are in the kernel branch's `docs/wireshark-optimization.md` and `tests/suspend_wakeup_host.py`. CPU/GPU clocks, thermal controls and scheduler are unchanged. The optimized branch enables the kernel's supported ThinLTO mode to reduce linker pressure on hosted runners; CFI and shadow call stack remain enabled. No battery or frame-time improvement is claimed until measured on hardware.
+
+**Known feature limitation:** the pinned KernelSU-Next revision `7d7f214e53d1b229115f094be4fe714601313027` does not define the SUSFS Kconfig options. Although the kernel source contains SUSFS code and defconfig entries, configuration normalization drops those options, so **SUSFS is inactive in the current build**. Enabling it requires a compatible KernelSU/SUSFS integration; a successful compile does not establish SUSFS support.
 
 ## Repository layout
 
