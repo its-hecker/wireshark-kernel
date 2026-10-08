@@ -1,8 +1,16 @@
 # WireShark kernel — Pixel 4 XL
 
-Build and package `its-hecker/infinity_cnb_kernel_google_msm-4.14` as an AnyKernel3 ZIP for **coral only**. The default source branch is `cnb-optimized`; select `cnb` under Run workflow to build the unchanged baseline. KernelSU/SUSFS settings come from the source's `floral_defconfig`; this repository does not change them.
+Build and package the kernel source in this repository as an AnyKernel3 ZIP for **coral only**. The default source branch is `cnb-optimized`; select `cnb` under Run workflow to build the unchanged baseline. KernelSU/SUSFS settings come from the source's `floral_defconfig`; this repository does not change them.
 
 The initial optimization set adapts three Sultan suspend/wakeup fixes: detect wakeups even when freezing just completed, preserve wakeups from suspend callbacks, and avoid repeated s2idle wake calls. Source details and host regression tests are in the kernel branch's `docs/wireshark-optimization.md` and `tests/suspend_wakeup_host.py`. CPU/GPU clocks, thermal controls, scheduler and defconfig are unchanged. No battery or frame-time improvement is claimed until measured on hardware.
+
+## Repository layout
+
+- `main`: build workflows, AnyKernel3 installer, packaging and validation scripts.
+- `cnb`: complete baseline kernel source.
+- `cnb-optimized`: complete kernel source with the initial Sultan suspend/wakeup adaptations.
+
+The workflow imports pinned source trees once, preserving licenses, KernelSU submodule references and optimization attribution. Existing source branches are never overwritten on subsequent runs. Both build choices clone this repository; further kernel development belongs on `cnb-optimized`.
 
 ## Build
 
@@ -22,7 +30,8 @@ Backups are partition images, not data backups. To restore boot use `fastboot fl
 
 ## Sources and licensing
 
-- Kernel: https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14/tree/cnb (GPL-2.0 and source-specific notices)
+- Kernel source: this repository's `cnb` and `cnb-optimized` branches (GPL-2.0 and source-specific notices)
+- Import origin: https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14; exact source revisions are recorded in `scripts/import-source.sh` and the import commits
 - KernelSU-Next: the source repository's pinned submodule
 - Build manifest: https://android.googlesource.com/kernel/manifest/ branch `android-msm-coral-4.14-android13`
 - Installer: https://github.com/osm0sis/AnyKernel3 (upstream license retained in ZIP)

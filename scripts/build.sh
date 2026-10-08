@@ -11,7 +11,7 @@ repo init -u https://android.googlesource.com/kernel/manifest -b android-msm-cor
 repo sync -c -j4 --no-tags --fail-fast
 rm -rf private/msm-google
 kernel_ref="${KERNEL_REF:-cnb-optimized}"
-git clone --depth=1 --branch "$kernel_ref" --recurse-submodules https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14.git private/msm-google
+git clone --depth=1 --branch "$kernel_ref" --recurse-submodules https://github.com/its-hecker/wireshark-kernel.git private/msm-google
 kernel_sha=$(git -C private/msm-google rev-parse HEAD)
 printf '%s\n' "$kernel_ref" > "$project/dist/kernel-ref.txt"
 if [ -f private/msm-google/tests/suspend_wakeup_host.py ]; then

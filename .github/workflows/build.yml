@@ -17,7 +17,17 @@ concurrency:
   group: wireshark-${{ github.ref }}-${{ inputs.kernel_ref || 'cnb-optimized' }}
   cancel-in-progress: true
 jobs:
+  import-source:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Create local kernel source branches if absent
+        run: bash scripts/import-source.sh
   build:
+    needs: import-source:
     runs-on: ubuntu-22.04
     timeout-minutes: 180
     steps:
