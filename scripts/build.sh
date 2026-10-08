@@ -32,6 +32,8 @@ KERNEL_DIR=private/msm-google
 POST_DEFCONFIG_CMDS=""
 # Wi-Fi and touch drivers are already built from this source tree.
 EXT_MODULES=""
+# This tree's modules_install does not populate AOSP's private debug directory.
+UNSTRIPPED_MODULES=""
 # AnyKernel3 preserves the installed ramdisk; only export the built .ko files.
 BUILD_INITRAMFS=""
 CONFIG
@@ -39,6 +41,8 @@ export BUILD_CONFIG=private/msm-google/build.config.wireshark
 # This checkout and OUT_DIR are new on each hosted runner. mrproper has no
 # config and trips KernelSU-Next's manual-hook check before defconfig runs.
 export SKIP_MRPROPER=1
+# The flashable package does not use kernel header archives.
+export SKIP_CP_KERNEL_HDR=1
 export OUT_DIR="$workspace/out"
 export DIST_DIR="$workspace/out/dist"
 export KBUILD_BUILD_USER=wireshark
