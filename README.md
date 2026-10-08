@@ -1,6 +1,8 @@
 # WireShark kernel — Pixel 4 XL
 
-Build and package `its-hecker/infinity_cnb_kernel_google_msm-4.14`, branch `cnb`, as an AnyKernel3 ZIP for **coral only**. KernelSU/SUSFS settings come from the source's `floral_defconfig`; this repository does not change them.
+Build and package `its-hecker/infinity_cnb_kernel_google_msm-4.14` as an AnyKernel3 ZIP for **coral only**. The default source branch is `cnb-optimized`; select `cnb` under Run workflow to build the unchanged baseline. KernelSU/SUSFS settings come from the source's `floral_defconfig`; this repository does not change them.
+
+The initial optimization set adapts three Sultan suspend/wakeup fixes: detect wakeups even when freezing just completed, preserve wakeups from suspend callbacks, and avoid repeated s2idle wake calls. Source details and host regression tests are in the kernel branch's `docs/wireshark-optimization.md` and `tests/suspend_wakeup_host.py`. CPU/GPU clocks, thermal controls, scheduler and defconfig are unchanged. No battery or frame-time improvement is claimed until measured on hardware.
 
 ## Build
 

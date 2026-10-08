@@ -10,8 +10,13 @@ git config --global user.email 'builder@users.noreply.github.com'
 repo init -u https://android.googlesource.com/kernel/manifest -b android-msm-coral-4.14-android13 --depth=1
 repo sync -c -j4 --no-tags --fail-fast
 rm -rf private/msm-google
-git clone --depth=1 --branch cnb --recurse-submodules https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14.git private/msm-google
+kernel_ref="${KERNEL_REF:-cnb-optimized}"
+git clone --depth=1 --branch "$kernel_ref" --recurse-submodules https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14.git private/msm-google
 kernel_sha=$(git -C private/msm-google rev-parse HEAD)
+printf '%s\n' "$kernel_ref" > "$project/dist/kernel-ref.txt"
+if [ -f private/msm-google/tests/suspend_wakeup_host.py ]; then
+  python3 private/msm-google/tests/suspend_wakeup_host.py
+fi
 repo manifest -r -o "$project/dist/workspace-manifest.xml"
 git -C private/msm-google submodule status --recursive > "$project/dist/kernel-submodules.txt"
 printf '%s\n' "$kernel_sha" > "$project/dist/kernel-commit.txt"

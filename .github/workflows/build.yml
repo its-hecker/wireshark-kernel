@@ -1,13 +1,20 @@
 name: Build WireShark
 on:
   workflow_dispatch:
+    inputs:
+      kernel_ref:
+        description: Kernel source branch
+        type: choice
+        options: [cnb-optimized, cnb]
+        default: cnb-optimized
+        required: true
   push:
     branches: [main]
     paths: ['scripts/**', 'anykernel.sh', '.github/workflows/build.yml']
 permissions:
   contents: read
 concurrency:
-  group: wireshark-${{ github.ref }}
+  group: wireshark-${{ github.ref }}-${{ inputs.kernel_ref || 'cnb-optimized' }}
   cancel-in-progress: true
 jobs:
   build:
@@ -28,6 +35,8 @@ jobs:
           chmod +x "$HOME/bin/repo"
           echo "$HOME/bin" >> "$GITHUB_PATH"
       - name: Build and validate flashable ZIP
+        env:
+          KERNEL_REF: ${{ inputs.kernel_ref || 'cnb-optimized' }}
         run: bash scripts/build.sh
       - name: Upload flashable ZIP and provenance
         uses: actions/upload-artifact@v4
