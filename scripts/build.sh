@@ -4,6 +4,10 @@ project=$(cd "$(dirname "$0")/.." && pwd)
 workspace="$project/workspace"
 mkdir -p "$workspace" "$project/dist"
 exec > >(tee "$project/dist/build.log") 2>&1
+# Keep linker resource usage visible even while LTO has no compiler output.
+(while sleep 30; do date -u; free -m; done) &
+resource_monitor_pid=$!
+trap 'kill "$resource_monitor_pid" 2>/dev/null || true' EXIT
 cd "$workspace"
 git config --global user.name 'WireShark Builder'
 git config --global user.email 'builder@users.noreply.github.com'
@@ -26,6 +30,8 @@ cat > private/msm-google/build.config.wireshark <<'CONFIG'
 KERNEL_DIR=private/msm-google
 . ${ROOT_DIR}/${KERNEL_DIR}/build.config.floral.common.clang
 POST_DEFCONFIG_CMDS=""
+# Wi-Fi and touch drivers are already built from this source tree.
+EXT_MODULES=""
 CONFIG
 export BUILD_CONFIG=private/msm-google/build.config.wireshark
 # This checkout and OUT_DIR are new on each hosted runner. mrproper has no

@@ -36,6 +36,13 @@ jobs:
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
           df -h "$GITHUB_WORKSPACE"
+      - name: Add linker swap space
+        run: |
+          sudo fallocate -l 12G /mnt/wireshark-swap
+          sudo chmod 600 /mnt/wireshark-swap
+          sudo mkswap /mnt/wireshark-swap
+          sudo swapon /mnt/wireshark-swap
+          free -h
       - name: Install build dependencies
         run: |
           sudo apt-get update
