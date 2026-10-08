@@ -2,13 +2,13 @@
 
 Build and package the kernel source in this repository as an AnyKernel3 ZIP for **coral only**. The default source branch is `cnb-optimized`; select `cnb` under Run workflow to build the unchanged baseline. KernelSU/SUSFS settings come from the source's `floral_defconfig`; this repository does not change them.
 
-The initial optimization set adapts three Sultan suspend/wakeup fixes: detect wakeups even when freezing just completed, preserve wakeups from suspend callbacks, and avoid repeated s2idle wake calls. Source details and host regression tests are in the kernel branch's `docs/wireshark-optimization.md` and `tests/suspend_wakeup_host.py`. CPU/GPU clocks, thermal controls, scheduler and defconfig are unchanged. No battery or frame-time improvement is claimed until measured on hardware.
+The initial optimization set adapts three Sultan suspend/wakeup fixes: detect wakeups even when freezing just completed, preserve wakeups from suspend callbacks, and avoid repeated s2idle wake calls. Source details and host regression tests are in the kernel branch's `docs/wireshark-optimization.md` and `tests/suspend_wakeup_host.py`. CPU/GPU clocks, thermal controls and scheduler are unchanged. The optimized branch enables the kernel's supported ThinLTO mode to reduce linker pressure on hosted runners; CFI and shadow call stack remain enabled. No battery or frame-time improvement is claimed until measured on hardware.
 
 ## Repository layout
 
 - `main`: build workflows, AnyKernel3 installer, packaging and validation scripts.
 - `cnb`: complete baseline kernel source.
-- `cnb-optimized`: complete kernel source with the initial Sultan suspend/wakeup adaptations.
+- `cnb-optimized`: complete kernel source with the initial Sultan suspend/wakeup adaptations and ThinLTO enabled.
 
 The workflow imports pinned source trees once, preserving licenses, KernelSU submodule references and optimization attribution. Existing source branches are never overwritten on subsequent runs. Both build choices clone this repository; further kernel development belongs on `cnb-optimized`.
 
@@ -16,7 +16,7 @@ The workflow imports pinned source trees once, preserving licenses, KernelSU sub
 
 Open **Actions → Build WireShark → Run workflow**, or push a build-script change to main. Download the `WireShark-coral` artifact when the run succeeds. Extract the outer GitHub artifact ZIP: the inner `WireShark-coral-<commit>.zip` is the flashable ZIP. A SHA256 file, source/tool provenance, build config, and matching module archive are included alongside it.
 
-The first build is experimental until tested on a phone. This is not a universal Android 17 kernel. The Android 13 AOSP Coral kernel build workspace supplies the original build tools and external drivers; ROM compatibility depends on the ROM's kernel/module ABI, not its Android version alone.
+The first build is experimental until tested on a phone. This is not a universal Android 17 kernel. The Android 13 AOSP Coral kernel build workspace supplies the original build tools; the Wi-Fi and touch drivers are built from the bundled kernel source, ROM compatibility depends on the ROM's kernel/module ABI, not its Android version alone.
 
 ## Installation
 
