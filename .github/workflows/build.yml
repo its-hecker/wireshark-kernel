@@ -27,7 +27,7 @@ jobs:
       - name: Create local kernel source branches if absent
         run: bash scripts/import-source.sh
   build:
-    needs: import-source:
+    needs: import-source
     runs-on: ubuntu-22.04
     timeout-minutes: 180
     steps:
