@@ -24,7 +24,7 @@ fi
 repo manifest -r -o "$project/dist/workspace-manifest.xml"
 git -C private/msm-google submodule status --recursive > "$project/dist/kernel-submodules.txt"
 printf '%s\n' "$kernel_sha" > "$project/dist/kernel-commit.txt"
-# Use the ROM's unchanged CFI-enabled floral_defconfig. Normalization by
+# Use the selected branch's CFI-enabled floral_defconfig. Normalization by
 # olddefconfig is allowed; all resolved settings are saved with the artifact.
 cat > private/msm-google/build.config.wireshark <<'CONFIG'
 KERNEL_DIR=private/msm-google
@@ -32,6 +32,8 @@ KERNEL_DIR=private/msm-google
 POST_DEFCONFIG_CMDS=""
 # Wi-Fi and touch drivers are already built from this source tree.
 EXT_MODULES=""
+# AnyKernel3 preserves the installed ramdisk; only export the built .ko files.
+BUILD_INITRAMFS=""
 CONFIG
 export BUILD_CONFIG=private/msm-google/build.config.wireshark
 # This checkout and OUT_DIR are new on each hosted runner. mrproper has no

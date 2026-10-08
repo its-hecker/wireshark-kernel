@@ -18,10 +18,20 @@ cat "$output/sm8150.dtb" "$output/sm8150-v2.dtb" > "$stage/dtb"
 cp "$output/.config" "$project/dist/kernel.config"
 rm -rf "$project/module-staging"
 mkdir -p "$project/module-staging"
-test -s "$output/modules.tar.gz"
-tar -xzf "$output/modules.tar.gz" -C "$project/module-staging"
+if [ -s "$output/modules.tar.gz" ]; then
+  tar -xzf "$output/modules.tar.gz" -C "$project/module-staging"
+else
+  # Android 4.14's build script exports the installed modules into DIST_DIR.
+  shopt -s nullglob
+  modules=("$output"/*.ko)
+  if [ "${#modules[@]}" -eq 0 ]; then
+    echo "No built kernel modules found in $output" >&2
+    exit 1
+  fi
+  cp "${modules[@]}" "$project/module-staging/"
+fi
 python3 "$project/scripts/module_manifest.py" "$project/module-staging" "$stage/modules.sha256"
-cp "$output/modules.tar.gz" "$project/dist/matching-modules.tar.gz"
+tar -czf "$project/dist/matching-modules.tar.gz" -C "$project/module-staging" .
 printf 'Kernel: %s\nAnyKernel3: %s\nDevice: coral\n' "$kernel_sha" "$installer_sha" > "$stage/version"
 cp "$stage/version" "$project/dist/provenance.txt"
 chmod 755 "$stage/anykernel.sh" "$stage/META-INF/com/google/android/update-binary" "$stage/tools/"*
