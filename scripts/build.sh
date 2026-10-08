@@ -3,6 +3,7 @@ set -euo pipefail
 project=$(cd "$(dirname "$0")/.." && pwd)
 workspace="$project/workspace"
 mkdir -p "$workspace" "$project/dist"
+exec > >(tee "$project/dist/build.log") 2>&1
 cd "$workspace"
 git config --global user.name 'WireShark Builder'
 git config --global user.email 'builder@users.noreply.github.com'
@@ -28,5 +29,5 @@ export KBUILD_BUILD_USER=wireshark
 export KBUILD_BUILD_HOST=github-actions
 export KBUILD_BUILD_TIMESTAMP="$(git -C private/msm-google show -s --format=%cD HEAD)"
 export SOURCE_DATE_EPOCH="$(git -C private/msm-google show -s --format=%ct HEAD)"
-bash build/build.sh -j"$(nproc)" 2>&1 | tee "$project/dist/build.log"
+bash build/build.sh -j"$(nproc)"
 bash "$project/scripts/package.sh" "$DIST_DIR" "$kernel_sha"
