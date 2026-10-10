@@ -30,7 +30,16 @@ else
   fi
   cp "${modules[@]}" "$project/module-staging/"
 fi
-python3 "$project/scripts/module_manifest.py" "$project/module-staging" "$stage/modules.sha256"
+python3 "$project/scripts/module_manifest.py" "$project/module-staging" "$stage/modules.sha256" "$stage/module-reference"
+cp "$output/Module.symvers" "$stage/module-symbols.txt"
+[ -s "$stage/module-symbols.txt" ] || { echo "Missing target kernel exports" >&2; exit 1; }
+# Static ARM64 executable: recovery does not need Python or a host libc.
+aarch64-linux-gnu-gcc -std=c99 -Os -static -s -Wall -Wextra -Werror \
+  "$project/scripts/module_check.c" -o "$stage/tools/module-check"
+cc -std=c99 -O2 -Wall -Wextra -Werror "$project/scripts/module_check.c" -o "$project/module-check-host"
+while read -r expected name; do
+  "$project/module-check-host" "$stage/module-reference/$name" "$stage/module-reference/$name" "$stage/module-symbols.txt"
+done < "$stage/modules.sha256"
 tar -czf "$project/dist/matching-modules.tar.gz" -C "$project/module-staging" .
 printf 'Kernel: %s\nAnyKernel3: %s\nDevice: coral\n' "$kernel_sha" "$installer_sha" > "$stage/version"
 cp "$stage/version" "$project/dist/provenance.txt"
@@ -40,3 +49,4 @@ rm -f "$zipfile"
 (cd "$stage" && zip -9 -r "$zipfile" .)
 python3 "$project/scripts/validate_zip.py" "$zipfile"
 (cd "$project/dist" && sha256sum "$(basename "$zipfile")" > "$(basename "$zipfile").sha256")
+

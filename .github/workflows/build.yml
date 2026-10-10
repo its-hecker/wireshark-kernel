@@ -46,11 +46,15 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison flex libssl-dev libelf-dev lz4 zip unzip rsync python3 python-is-python3 curl git build-essential libncurses-dev
+          sudo apt-get install -y bc bison flex libssl-dev libelf-dev lz4 zip unzip rsync python3 python-is-python3 curl git build-essential libncurses-dev gcc-aarch64-linux-gnu
           mkdir -p "$HOME/bin"
           curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo -o "$HOME/bin/repo"
           chmod +x "$HOME/bin/repo"
           echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Validate module ABI preflight
+        run: |
+          cc -std=c99 -O2 -Wall -Wextra -Werror scripts/module_check.c -o "$RUNNER_TEMP/module-check-host"
+          python3 scripts/test_module_check.py "$RUNNER_TEMP/module-check-host"
       - name: Build and validate flashable ZIP
         env:
           KERNEL_REF: ${{ inputs.kernel_ref || 'cnb-optimized' }}
@@ -76,3 +80,4 @@ jobs:
           path: dist/build.log
           if-no-files-found: ignore
           retention-days: 14
+

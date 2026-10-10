@@ -26,7 +26,11 @@ Use an unlocked Pixel 4 XL and a recovery or root kernel installer that supports
 
 The installer checks `coral`, determines the active A/B slot, backs up its boot and dtbo partitions to `/sdcard/WireShark-backups`, and repacks the existing boot image while preserving its ramdisk. It installs the built kernel, DTB and DTBO only into the active slot. It does not wipe data or flash the other slot.
 
-**Module compatibility is enforced before any partition write.** Every module built with this kernel must already exist on the ROM with the identical SHA256 hash. If a module is missing or differs, installation aborts. This deliberately strict check prevents silently installing a kernel against unmatched Wi-Fi or other vendor drivers. The matching module archive is for ROM developers to integrate into their ROM; it is not itself a flashable ZIP. Do not disable the guard to force installation on another ROM. Different build environments can produce different module hashes even with compatible source, so an abort requires investigation rather than proving an ABI mismatch.
+**Module ABI preflight runs before any partition write.** Every module built with this kernel must be readable on the installed ROM. A static ARM64 checker compares its module name, vermagic, module structure size and legacy Clang CFI mode with the built reference. It checks every imported symbol CRC against the freshly built kernel's complete `Module.symvers`, and checks the module's exported symbol names and CRCs against its reference. An additional compiler-generated import is accepted only when its symbol and CRC exist in the target build. A whole-file SHA256 difference is no longer an installation failure; SHA256 still verifies the reference files inside the package.
+
+Missing or unreadable modules produce a Vendor-mount diagnostic; actual ABI failures report the incompatible symbol or metadata. Vendor is only read, and the ZIP does not replace the ROM's modules. Reference `.ko` files in `module-reference/` are used for validation only. The separate matching module archive remains available for ROM developers. Passing this preflight is not a hardware boot test or a guarantee that all driver behavior is compatible.
+
+The original OrangeFox abort on InfinityX was caused by the exact-hash rule. The supplied Clang 22.0.2 `adsp_loader_dlkm.ko` and the Clang 12.0.5 reference have the same vermagic, 896-byte module structure and all 27 shared import CRCs. The ROM driver additionally imports `__stack_chk_guard`, which this source exports. The new checker verifies that import against the actual build exports rather than assuming that a compiler difference is an ABI failure.
 
 Backups are partition images, not data backups. To restore boot use `fastboot flash boot_a <backup>` or `boot_b`, matching the recorded slot; similarly restore `dtbo_a` or `dtbo_b` if needed. Never flash an image from a different device or ROM.
 
@@ -39,3 +43,4 @@ Backups are partition images, not data backups. To restore boot use `fastboot fl
 - Installer: https://github.com/osm0sis/AnyKernel3 (upstream license retained in ZIP)
 
 Build output records exact kernel, submodule, manifest-project and installer revisions. Consult the original source repositories for their licenses.
+

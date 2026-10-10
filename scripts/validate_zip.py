@@ -1,4 +1,5 @@
 import re
+import hashlib
 import struct
 import sys
 import zipfile
@@ -10,9 +11,9 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     for name in names:
         if name.startswith('/') or '..' in name.split('/') or '.git' in name.split('/'):
             raise SystemExit(f'Unsafe ZIP member: {name}')
-    for name in ('Image.lz4', 'dtb', 'dtbo.img', 'anykernel.sh', 'modules.sha256',
+    for name in ('Image.lz4', 'dtb', 'dtbo.img', 'anykernel.sh', 'modules.sha256', 'module-symbols.txt',
                  'META-INF/com/google/android/update-binary', 'tools/ak3-core.sh',
-                 'tools/magiskboot', 'tools/busybox'):
+                 'tools/magiskboot', 'tools/busybox', 'tools/module-check'):
         if not archive.read(name):
             raise SystemExit(f'Empty payload: {name}')
     if archive.read('Image.lz4')[:4] not in (b'\x02\x21\x4c\x18', b'\x04\x22\x4d\x18'):
@@ -39,7 +40,21 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     manifest = archive.read('modules.sha256').decode().splitlines()
     if not manifest or not all(re.fullmatch(r'[0-9a-f]{64} [A-Za-z0-9_.-]+\.ko', line) for line in manifest):
         raise SystemExit('Invalid module checksums')
-    for name in ('anykernel.sh', 'META-INF/com/google/android/update-binary'):
+    for line in manifest:
+        digest, name = line.split()
+        if hashlib.sha256(archive.read(f'module-reference/{name}')).hexdigest() != digest:
+            raise SystemExit(f'Invalid module ABI reference: {name}')
+    checker = archive.read('tools/module-check')
+    if len(checker) < 64 or checker[:6] != b'\x7fELF\x02\x01':
+        raise SystemExit('ABI checker is not a little-endian ELF64 executable')
+    header = struct.unpack_from('<16sHHIQQQIHHHHHH', checker)
+    if header[1] != 2 or header[2] != 183 or header[9] != 56 or header[5] + header[9] * header[10] > len(checker):
+        raise SystemExit('ABI checker is not a valid ARM64 executable')
+    for index in range(header[10]):
+        if struct.unpack_from('<I', checker, header[5] + index * header[9])[0] == 3:
+            raise SystemExit('ABI checker requires a dynamic loader')
+    for name in ('anykernel.sh', 'META-INF/com/google/android/update-binary', 'tools/module-check'):
         if not (archive.getinfo(name).external_attr >> 16) & 0o111:
             raise SystemExit(f'Installer is not executable: {name}')
-print('ZIP structure, device/slot guards, kernel, DTB, DTBO and module manifest validated')
+print('ZIP structure, device/slot guards, kernel, DTB, DTBO, static ABI checker and module references validated')
+

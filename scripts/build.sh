@@ -29,6 +29,7 @@ printf '%s\n' "$kernel_sha" > "$project/dist/kernel-commit.txt"
 cat > private/msm-google/build.config.wireshark <<'CONFIG'
 KERNEL_DIR=private/msm-google
 . ${ROOT_DIR}/${KERNEL_DIR}/build.config.floral.common.clang
+FILES="${FILES} Module.symvers"
 POST_DEFCONFIG_CMDS=""
 # Wi-Fi and touch drivers are already built from this source tree.
 EXT_MODULES=""
@@ -51,3 +52,4 @@ export KBUILD_BUILD_TIMESTAMP="$(git -C private/msm-google show -s --format=%cD 
 export SOURCE_DATE_EPOCH="$(git -C private/msm-google show -s --format=%ct HEAD)"
 bash build/build.sh -j"$(nproc)"
 bash "$project/scripts/package.sh" "$DIST_DIR" "$kernel_sha"
+

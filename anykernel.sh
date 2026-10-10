@@ -22,18 +22,36 @@ PATCH_VBMETA_FLAG=0
 # Core initialization resolves BLOCK and SLOT but does not write partitions.
 [ -s Image.lz4 ] && [ -s dtb ] && [ -s dtbo.img ] || abort "Missing kernel or device-tree payload."
 [ -s modules.sha256 ] || abort "Missing module compatibility manifest."
+[ -s module-symbols.txt ] && [ -x tools/module-check ] || abort "Missing module ABI checker."
 while read -r expected name; do
   [ -n "$expected" ] && [ -n "$name" ] || abort "Invalid module manifest."
   case "$name" in *[!A-Za-z0-9_.-]*) abort "Invalid module name.";; esac
   matched=0
+  found=0
+  readable=0
+  failure=""
+  reference="module-reference/$name"
+  [ -s "$reference" ] || abort "Missing module reference: $name"
   for root in /vendor/lib/modules /system/vendor/lib/modules /vendor_dlkm/lib/modules /system/lib/modules; do
     for candidate in $(find -L "$root" -type f -name "$name" 2>/dev/null); do
-      actual=$(sha256sum "$candidate" | cut -d' ' -f1)
-      [ "$actual" = "$expected" ] && matched=1
+      found=1
+      [ -r "$candidate" ] || continue
+      readable=1
+      if failure=$(tools/module-check "$candidate" "$reference" module-symbols.txt 2>&1); then
+        matched=1
+        break
+      fi
     done
+    [ "$matched" = 1 ] && break
   done
-  [ "$matched" = 1 ] || abort "ROM module $name does not match this build. Install a ROM with the matching modules first."
+  [ "$found" = 1 ] || abort "ROM module $name is unavailable. Mount Vendor in recovery, then retry."
+  [ "$readable" = 1 ] || abort "Cannot read ROM module $name. Check the Vendor mount."
+  if [ "$matched" != 1 ]; then
+    ui_print "$failure"
+    abort "ROM module $name failed ABI validation. No partitions were changed."
+  fi
 done < modules.sha256
+ui_print "ROM module ABI checks passed."
 
 case "$SLOT" in _a|_b) ;; *) abort "Invalid active slot.";; esac
 dtbo_block=/dev/block/by-name/dtbo$SLOT
@@ -49,3 +67,4 @@ ui_print "Partition backups: $backup"
 split_boot
 flash_boot
 flash_generic dtbo
+
