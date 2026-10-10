@@ -20,6 +20,10 @@ Open **Actions → Build WireShark → Run workflow**, or push a build-script ch
 
 The first build is experimental until tested on a phone. This is not a universal Android 17 kernel. The Android 13 AOSP Coral kernel build workspace supplies the original build tools; the Wi-Fi and touch drivers are built from the bundled kernel source, ROM compatibility depends on the ROM's kernel/module ABI, not its Android version alone.
 
+The corrected installer was built successfully in [run 38093277412](https://github.com/its-hecker/wireshark-kernel/actions/runs/38093277412), using builder commit `ef4a0966f127ff03437711d0041d8161d8d86104` and source `4919641578c86a0463b1de5ccc1de80d429cfd8c` (`cnb-optimized`). [Download the WireShark-coral artifact](https://github.com/its-hecker/wireshark-kernel/actions/runs/38093277412/artifacts/11685965949) and extract `WireShark-coral-4919641578c8.zip`. Its SHA256 is `9df1d3d0e7c4246cf02449537be38313f4d2ac670bc848e3d225c3e385033872`.
+
+Verification passed: 18 host/preflight regression cases, all 27 built reference-module checks, ZIP/reference integrity and a static ARM64 checker with no dynamic-loader dependency. The uploaded InfinityX `adsp_loader_dlkm.ko` passes the checker against this build's actual exports, including all 28 imported CRCs; `__stack_chk_guard` is exported with CRC `0x8f678b07`. The remaining installed ROM modules are checked during installation. Phone flashing and boot testing remain pending.
+
 ## Installation
 
 Use an unlocked Pixel 4 XL and a recovery or root kernel installer that supports AnyKernel3. Keep a known-good boot image and a way to restore it with fastboot. Flash the inner ZIP on the compatible ROM, then reboot.
