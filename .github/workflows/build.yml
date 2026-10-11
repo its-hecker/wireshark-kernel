@@ -1,5 +1,11 @@
 name: Build WireShark diagnostic (Clang 22 / Full LTO)
 on:
+  push:
+    branches: [boot-diagnostic-builder]
+    paths:
+      - .github/workflows/build.yml
+      - scripts/**
+      - anykernel.sh
   workflow_dispatch:
     inputs:
       kernel_ref:
