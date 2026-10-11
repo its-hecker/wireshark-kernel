@@ -42,10 +42,34 @@ and the presence of legacy CFI. This does not establish bootability.
 An exploratory CFI comparison-ID scan matches 26 module reference sets;
 Wi-Fi has generated-code differences requiring further inspection. The
 scan is not a complete CFI verifier. See `rom-module-baseline.md`.
-Compare all modules again against fresh exports before preparing any
-further device test. Do not reinstall the reported failing
+The fresh diagnostic comparisons are recorded below. Do not reinstall the reported failing
 ZIP just to collect logs. A future test should first use a temporary boot
 image preserving the installed recovery ramdisk and original device trees.
+
+## Validated retry, pending phone test
+
+[Run 38170155669](https://github.com/its-hecker/wireshark-kernel/actions/runs/38170155669) completed successfully on 2026-10-11.
+Source: `72c95de548e83e9113080d6827b822d0302e9d8d`.
+Builder: `e0e33d10e19ca718cc3d146f4041029179efe693`.
+The compiler identity and embedded configuration were independently checked.
+The resolved configuration has no differences from the supplied working
+kernel. All 27 ROM modules pass against fresh exports (2,555 imported CRC
+records). All 27 named type-ID sets and exploratory equality-comparison
+ID sets match, including the earlier differing Wi-Fi checks. The scan
+does not verify every CFI call or establish the previous boot failure's cause.
+
+Compiled ZIP SHA256:
+`6972a595556c2ad2e6d2ec7e9f6267da1d90fd3a571628cfd0ebb4e3deb6c66f`.
+Kernel payload SHA256:
+`cb053ee284760b7a62dc52935630c99796e09adda71744bb86f28d72d35fa425`.
+
+A separate coral-only temporary image was prepared using this kernel and
+the maintainer's supplied working backup. Its compressed OrangeFox ramdisk,
+DTB and header settings are unchanged, and DTBO is not written. Use
+[the temporary test guide](https://github.com/its-hecker/wireshark-kernel/blob/main/docs/boot-recovery.md#validated-temporary-diagnostic-image).
+Do not flash the diagnostic ZIP yet: it also replaces device-tree payloads.
+No phone boot of the diagnostic kernel has been verified. Flame and other
+ROM builds require their own compatibility evidence and device tests.
 
 Primary toolchain reference:
 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+/refs/heads/mirror-goog-main-llvm-toolchain-source

@@ -36,16 +36,31 @@ Relocation inspection associates two differing Wi-Fi comparison IDs with
 This establishes generated CFI metadata differences, without showing a
 failing runtime call or proving that CFI caused the reported bootloop.
 The ABI preflight's CFI-mode check does not compare these type IDs. The
-Clang 22 diagnostic build must be checked against the ROM modules again.
+fresh diagnostic comparison is recorded below.
 
 These results rule out the mismatches checked by this preflight for the
 uploaded modules. They do not establish runtime CFI correctness, correct
 early kernel initialization, device-tree compatibility or phone bootability.
 The recovery log contained no panic trace and pstore was empty.
 
-Next: build with the exact restored-ROM compiler and Full LTO, repeat all
-module checks, then prepare a temporary boot image containing only the new
-kernel. Preserve the uploaded working boot image's ramdisk and DTB and
-leave the on-device DTBO unchanged during that first device test.
+## Fresh diagnostic comparison
+
+[Run 38170155669](https://github.com/its-hecker/wireshark-kernel/actions/runs/38170155669) compiled the exact restored-ROM Clang 22
+build with Full LTO. All 27 supplied ROM modules pass the fresh ABI
+checker, including all 2,555 imported CRC records. There are no missing
+reference modules. Named CFI type-ID sets and exploratory equality-comparison
+ID sets match for all 27 module pairs. The earlier Wi-Fi comparison-ID
+differences are absent in this scan.
+
+This is stronger alignment with the working build profile, not a complete
+runtime CFI proof or confirmation of the bootloop's cause. The compiled
+configuration matches the supplied working kernel's configuration and the
+embedded new-kernel config exactly.
+
+The first device test uses a separately delivered coral temporary boot
+image. Only its kernel was replaced; the compressed OrangeFox ramdisk,
+original DTB and header settings were verified unchanged. No DTBO payload
+or partition write is involved. See
+[the temporary test guide](https://github.com/its-hecker/wireshark-kernel/blob/main/docs/boot-recovery.md#validated-temporary-diagnostic-image).
 
 No phone test of the diagnostic image has yet been performed.
