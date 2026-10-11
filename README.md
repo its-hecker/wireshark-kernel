@@ -26,6 +26,8 @@ The Android 13 AOSP Coral workspace supplies the original Clang toolchain; this 
 
 Regression coverage includes 29 module ABI/installer cases and 8 tests compiling the actual optimized kernel CRC/vermagic functions. Cases cover compatible Lineage release names, changed ABI rejection, coral/flame acceptance, recovery property fallback, unsupported devices and maintainer output.
 
+The shared floral build succeeded in [run 38161422852](https://github.com/its-hecker/wireshark-kernel/actions/runs/38161422852), using builder `d8109a051e1b3c8f3da8e58f903e6033a3e7e4fd` and source `ad869a2e1f74090fea2ff402d1261e9206ba13cd`. [Download the WireShark-floral artifact](https://github.com/its-hecker/wireshark-kernel/actions/runs/38161422852/artifacts/11711555318) and extract **`WireShark-floral-ad869a2e1f74.zip`**. Its SHA256 is `da3f793e5d34cd74686e2e30ec96251467ccadb2b920a2f7eea926eb89610e66`. Downloaded-artifact verification passed: ZIP/checksum integrity, both production overlays and device guards, all 27 built references and the uploaded InfinityX ADSP module against this build's actual exports (all 28 imports). Phone flashing and full boot/hardware testing remain pending.
+
 The earlier coral correction succeeded in [run 38093277412](https://github.com/its-hecker/wireshark-kernel/actions/runs/38093277412); the uploaded InfinityX Clang 22 `adsp_loader_dlkm.ko` passed all 28 imported CRCs against that build, including `__stack_chk_guard`. That artifact remains coral-only. Use the new `WireShark-floral` artifact for the shared installer. A fresh build and phone boot tests are separate from that earlier driver check.
 
 ## Installation
