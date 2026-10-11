@@ -1,12 +1,14 @@
 # WireShark kernel — Pixel 4 / Pixel 4 XL
 
-> **Boot failure reported — 2026-10-11:** `WireShark-floral-ad869a2e1f74.zip` was reported to hang at the Google logo after flashing. **Do not flash this artifact while the cause is under investigation.** A successful compile and module preflight did not establish boot compatibility. The uploaded slot-a backup contains OrangeFox; recovery shares the replaced boot kernel, so a kernel boot failure can also block it. The root cause is still unconfirmed. See [recovery and diagnostic steps](docs/boot-recovery.md) to capture the failed image and restore the pre-flash boot/DTBO backups without wiping data.
+> **Boot failure reported — 2026-10-11:** `WireShark-floral-ad869a2e1f74.zip` was reported to hang at the Google logo after flashing. **Do not flash this artifact while the cause is under investigation.** A successful compile and module preflight did not establish boot compatibility. The uploaded slot-a backup contains OrangeFox; recovery shares the replaced boot kernel, so a kernel boot failure can also block it. The phone boots again after restoring the pre-flash boot backup. The root cause is still unconfirmed. See [recovery and diagnostic steps](docs/boot-recovery.md) to capture the failed image and restore the pre-flash boot/DTBO backups without wiping data.
 
 One AnyKernel3 ZIP for **Pixel 4 (`flame`) and Pixel 4 XL (`coral`)**, targeting Android 17 Lineage-based ROMs with a compatible floral kernel/module ABI. The default source branch is `cnb-optimized`; `cnb` remains the unchanged baseline. Every artifact includes the resolved `floral_defconfig`, KernelSU settings and provenance.
 
 Maintainer: **Hecker (@its-hecker)**. Installation displays the maintainer, repository, [updates channel](https://t.me/pixel4seriesupdates), target ROM family and detected device.
 
 ## Compatibility
+
+**CFI limitation:** the current preflight checks legacy-CFI mode, not every function type ID. All 27 modules from the restored ROM passed the failed build's ABI checks (2,555 imported CRC records), yet the Wi-Fi tracing functions have differing CFI IDs between its Clang 22 modules and the Clang 12 references. No runtime crash trace establishes the cause. The isolated [Clang 22 / Full LTO diagnostic profile](https://github.com/its-hecker/wireshark-kernel/blob/boot-diagnostic-builder/docs/diagnostic-profile.md) matches the restored compiler; [its build](https://github.com/its-hecker/wireshark-kernel/actions/runs/38168396560) still requires output validation and a phone boot test. Passing preflight is not a guarantee of support for every Android 17 ROM.
 
 Both devices use the shared `floral_defconfig`, boot header v2, a DTB in boot and an 8 MiB DTBO partition. The ZIP preserves the complete floral DTBO table and its ordering, including prototype/EVT/DVT/production variants. Validation requires the production coral/flame overlays and their correct board IDs.
 

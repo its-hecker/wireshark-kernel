@@ -15,6 +15,33 @@ Do not flash this artifact again or wipe data to resolve this kernel failure.
 The installer changes only boot and DTBO in the selected slot. Restore the
 pre-flash images from the same device/ROM.
 
+## Restored-ROM module evidence
+
+The maintainer restored the pre-flash boot backup and Android boots again.
+Keep that working kernel installed during this investigation.
+
+The complete `/vendor/lib/modules` archive supplied on 2026-10-11 contains
+all 27 modules in the reported failing build's reference set. Every module
+passes its static ABI checker: 2,555 imported symbol CRC records, exported
+symbols, vermagic feature flags, module-structure size and legacy-CFI mode.
+Every module identifies the restored compiler, Clang 22.0.2 build 15071444.
+The failed build used Clang 12 and ThinLTO; the working config uses Full LTO.
+
+CFI-mode checks do not compare all function type IDs. Relocation inspection
+found differing Wi-Fi IDs for `qdf_vtrace_msg` and `qdf_trace_msg_cmn`.
+This establishes a metadata difference, not a failed runtime call or a
+confirmed explanation of the bootloop. See the
+[full module findings](https://github.com/its-hecker/wireshark-kernel/blob/boot-diagnostic-builder/docs/rom-module-baseline.md).
+
+The separate
+[diagnostic profile](https://github.com/its-hecker/wireshark-kernel/blob/boot-diagnostic-builder/docs/diagnostic-profile.md)
+uses the exact compiler build and Full LTO while retaining CFI, shadow
+call stack and strict CRC checks. The next planned device test uses a
+validated temporary boot image with only its kernel replaced. Preserve
+its recovery ramdisk and original DTB and leave on-device DTBO untouched.
+Do not flash another ZIP or reinstall the failed kernel merely to obtain
+a crash log. No diagnostic phone boot has been verified yet.
+
 ## What the uploaded backup establishes
 
 The supplied `logs.zip` contains pre-flash `boot_a.img` and `dtbo_a.img`
