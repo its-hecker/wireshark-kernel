@@ -24,7 +24,7 @@ Open **Actions → Build WireShark → Run workflow**, or push a build-script ch
 
 The Android 13 AOSP Coral workspace supplies the original Clang toolchain; this does not restrict the Android userspace version. Wi-Fi and touch drivers build from the bundled source. Packaging checks all built references against actual exports, the static ARM64 checker and both production overlays.
 
-Regression coverage includes 28 module ABI/installer cases and 8 tests compiling the actual optimized kernel CRC/vermagic functions. Cases cover compatible Lineage release names, changed ABI rejection, coral/flame acceptance, unsupported devices and maintainer output.
+Regression coverage includes 29 module ABI/installer cases and 8 tests compiling the actual optimized kernel CRC/vermagic functions. Cases cover compatible Lineage release names, changed ABI rejection, coral/flame acceptance, recovery property fallback, unsupported devices and maintainer output.
 
 The earlier coral correction succeeded in [run 38093277412](https://github.com/its-hecker/wireshark-kernel/actions/runs/38093277412); the uploaded InfinityX Clang 22 `adsp_loader_dlkm.ko` passed all 28 imported CRCs against that build, including `__stack_chk_guard`. That artifact remains coral-only. Use the new `WireShark-floral` artifact for the shared installer. A fresh build and phone boot tests are separate from that earlier driver check.
 

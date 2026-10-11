@@ -100,7 +100,8 @@ def main():
         tools = root / 'tools'
         tools.mkdir()
         (tools / 'ak3-core.sh').write_text('abort() { echo "$*" >&2; exit 1; }\nui_print() { echo "$*"; }\n'
-                                        'getprop() { [ "$1" = ro.product.device ] && echo "${TEST_DEVICE-coral}"; }\n')
+                                        'getprop() { [ "${TEST_USE_BUILD_PROP:-0}" != 1 ] && [ "$1" = ro.product.device ] && echo "${TEST_DEVICE-coral}"; }\n'
+                                        'file_getprop() { grep "^$2=" "$1" | tail -n1 | cut -d= -f2-; }\n')
         (tools / 'module-check').symlink_to(checker)
         refs, vendor = root / 'module-reference', root / 'vendor'
         refs.mkdir()
@@ -112,7 +113,10 @@ def main():
         digest = hashlib.sha256((refs / 'example.ko').read_bytes()).hexdigest()
         (root / 'modules.sha256').write_text(f'{digest} example.ko\n')
         old_roots = '/vendor/lib/modules /system/vendor/lib/modules /vendor_dlkm/lib/modules /system/lib/modules'
-        installer = installer.replace(old_roots, str(vendor)) + 'echo partition-write > write-marker\n'
+        prop_file = root / 'rom-build.prop'
+        prop_file.write_text('')
+        prop_roots = '/vendor/build.prop /system_root/system/build.prop /system/build.prop /default.prop'
+        installer = installer.replace(old_roots, str(vendor)).replace(prop_roots, str(prop_file)) + 'echo partition-write > write-marker\n'
         (root / 'preflight.sh').write_text(installer)
         for label, settings, success, message in [
             ('hash differs but ABI matches', {'imports': {'module_layout': 0x1234, 'api_fn': 0x5678, '__stack_chk_guard': 0x8f678b07}}, True, 'ABI checks passed'),
@@ -147,7 +151,13 @@ def main():
             assert message in result.stdout + result.stderr, (device, result.stdout, result.stderr)
             assert 'Maintainer: Hecker (@its-hecker)' in result.stdout
             assert 'https://t.me/pixel4seriesupdates' in result.stdout
-    print('28 module ABI and installer-preflight regression cases passed')
+        marker.unlink(missing_ok=True)
+        prop_file.write_text('ro.product.vendor.device=flame\n')
+        result = subprocess.run(['sh', 'preflight.sh'], cwd=root, capture_output=True, text=True,
+                                env={**os.environ, 'TEST_USE_BUILD_PROP': '1'})
+        assert result.returncode == 0 and marker.exists(), (result.stdout, result.stderr)
+        assert 'Pixel 4 (flame)' in result.stdout
+    print('29 module ABI and installer-preflight regression cases passed')
 
 
 if __name__ == '__main__':

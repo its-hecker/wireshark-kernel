@@ -29,6 +29,15 @@ for prop in ro.boot.hardware ro.product.device ro.product.vendor.device ro.vendo
   value=$(getprop "$prop" 2>/dev/null)
   case "$value" in coral|flame) device="$value"; break;; esac
 done
+if [ -z "$device" ]; then
+  # Recovery's property service may be unavailable; use mounted ROM metadata.
+  for build_prop in /vendor/build.prop /system_root/system/build.prop /system/build.prop /default.prop; do
+    for prop in ro.product.device ro.product.vendor.device ro.vendor.product.device ro.build.product; do
+      value=$(file_getprop "$build_prop" "$prop" 2>/dev/null)
+      case "$value" in coral|flame) device="$value"; break 2;; esac
+    done
+  done
+fi
 case "$device" in
   coral) ui_print "Device: Pixel 4 XL (coral)";;
   flame) ui_print "Device: Pixel 4 (flame)";;
