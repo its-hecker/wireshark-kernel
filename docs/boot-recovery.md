@@ -1,5 +1,16 @@
 # Recovering from the reported WireShark boot failure
 
+> **Device-test update — 2026-10-12 (Asia/Karachi):** The maintainer reports
+> that the requested temporary test remains at the Google splash and ADB
+> reports no devices. The intended image is
+> `WireShark-coral-temporary-72c95de548e8.img`; the actual fastboot command
+> output has not yet been supplied. Treat this diagnostic image as a failed
+> reported test, not a bootable fix. Recover using the installed working
+> boot/recovery and collect pstore before a normal Android reboot. Do not
+> flash the diagnostic image or ZIP. The earlier supplied recovery logs
+> describe a rejected installation of the older `332ebd1b8867` ZIP, not
+> a crash trace from this temporary test. Root cause remains unconfirmed.
+
 ## Affected artifact and current status
 
 On 2026-10-11, a user reported that their phone stayed at the Google logo
