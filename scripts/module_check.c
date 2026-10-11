@@ -113,6 +113,22 @@ static int compare_symbol(const void *left, const void *right)
     return strcmp(((const struct symbol *)left)->name, ((const struct symbol *)right)->name);
 }
 
+static void check_vermagic(const struct image *installed, const struct image *reference)
+{
+    const char *actual = modinfo(installed, "vermagic");
+    const char *expected = modinfo(reference, "vermagic");
+    const char *actual_flags = strchr(actual, ' ');
+    const char *expected_flags = strchr(expected, ' ');
+    /* kernel/module.c::same_magic ignores UTS_RELEASE for versioned modules.
+     * check_versions still requires a nonempty __versions table, module_layout
+     * and a matching target CRC for every imported symbol in both modules.
+     */
+    if (!actual_flags || actual_flags == actual || !expected_flags || expected_flags == expected ||
+        !strstr(actual_flags, " modversions ") || !strstr(expected_flags, " modversions ") ||
+        strcmp(actual_flags, expected_flags))
+        fail("Module vermagic flags differ from this build (MODVERSIONS required)");
+}
+
 static void read_exports(const char *path)
 {
     FILE *file = fopen(path, "r");
@@ -238,8 +254,7 @@ int main(int argc, char **argv)
     struct image installed = open_image(argv[1]), reference = open_image(argv[2]);
     if (strcmp(modinfo(&installed, "name"), modinfo(&reference, "name")))
         fail("Module name differs from this build");
-    if (strcmp(modinfo(&installed, "vermagic"), modinfo(&reference, "vermagic")))
-        fail("Module vermagic differs from this build");
+    check_vermagic(&installed, &reference);
     if (named_section(&installed, ".gnu.linkonce.this_module").sh_size !=
         named_section(&reference, ".gnu.linkonce.this_module").sh_size)
         fail("Module structure size differs from this build");
@@ -257,3 +272,4 @@ int main(int argc, char **argv)
     free(exports);
     return 0;
 }
+

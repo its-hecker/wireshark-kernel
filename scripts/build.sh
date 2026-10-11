@@ -21,6 +21,9 @@ printf '%s\n' "$kernel_ref" > "$project/dist/kernel-ref.txt"
 if [ -f private/msm-google/tests/suspend_wakeup_host.py ]; then
   python3 private/msm-google/tests/suspend_wakeup_host.py
 fi
+if [ -f private/msm-google/tests/module_loader_host.py ]; then
+  python3 private/msm-google/tests/module_loader_host.py
+fi
 repo manifest -r -o "$project/dist/workspace-manifest.xml"
 git -C private/msm-google submodule status --recursive > "$project/dist/kernel-submodules.txt"
 printf '%s\n' "$kernel_sha" > "$project/dist/kernel-commit.txt"
@@ -52,4 +55,5 @@ export KBUILD_BUILD_TIMESTAMP="$(git -C private/msm-google show -s --format=%cD 
 export SOURCE_DATE_EPOCH="$(git -C private/msm-google show -s --format=%ct HEAD)"
 bash build/build.sh -j"$(nproc)"
 bash "$project/scripts/package.sh" "$DIST_DIR" "$kernel_sha"
+
 

@@ -41,12 +41,14 @@ while read -r expected name; do
   "$project/module-check-host" "$stage/module-reference/$name" "$stage/module-reference/$name" "$stage/module-symbols.txt"
 done < "$stage/modules.sha256"
 tar -czf "$project/dist/matching-modules.tar.gz" -C "$project/module-staging" .
-printf 'Kernel: %s\nAnyKernel3: %s\nDevice: coral\n' "$kernel_sha" "$installer_sha" > "$stage/version"
+printf 'Kernel: %s\nBuilder: %s\nAnyKernel3: %s\nDevices: coral / flame (floral)\n' "$kernel_sha" "${GITHUB_SHA:-local}" "$installer_sha" > "$stage/version"
 cp "$stage/version" "$project/dist/provenance.txt"
+printf 'Maintainer: Hecker (@its-hecker)\nTarget: Android 17 Lineage-based ROMs with compatible module ABI\n' >> "$project/dist/provenance.txt"
 chmod 755 "$stage/anykernel.sh" "$stage/META-INF/com/google/android/update-binary" "$stage/tools/"*
-zipfile="$project/dist/WireShark-coral-${kernel_sha:0:12}.zip"
+zipfile="$project/dist/WireShark-floral-${kernel_sha:0:12}.zip"
 rm -f "$zipfile"
 (cd "$stage" && zip -9 -r "$zipfile" .)
 python3 "$project/scripts/validate_zip.py" "$zipfile"
 (cd "$project/dist" && sha256sum "$(basename "$zipfile")" > "$(basename "$zipfile").sha256")
+
 

@@ -1,12 +1,13 @@
 #!/sbin/sh
 properties() { '
-kernel.string=WireShark for Pixel 4 XL
+kernel.string=WireShark for Pixel 4 / 4 XL
 do.devicecheck=1
 do.modules=0
 do.systemless=0
 do.cleanup=1
 do.cleanuponabort=1
 device.name1=coral
+device.name2=flame
 supported.versions=
 supported.patchlevels=
 supported.vendorpatchlevels=
@@ -18,6 +19,21 @@ SLOT_SELECT=active
 RAMDISK_COMPRESSION=auto
 PATCH_VBMETA_FLAG=0
 . tools/ak3-core.sh
+
+ui_print "Maintainer: Hecker (@its-hecker)"
+ui_print "Source: https://github.com/its-hecker/wireshark-kernel"
+ui_print "Updates: https://t.me/pixel4seriesupdates"
+ui_print "Target: Android 17 Lineage-based ROMs"
+device=""
+for prop in ro.boot.hardware ro.product.device ro.product.vendor.device ro.vendor.product.device ro.build.product; do
+  value=$(getprop "$prop" 2>/dev/null)
+  case "$value" in coral|flame) device="$value"; break;; esac
+done
+case "$device" in
+  coral) ui_print "Device: Pixel 4 XL (coral)";;
+  flame) ui_print "Device: Pixel 4 (flame)";;
+  *) abort "This ZIP supports coral and flame only.";;
+esac
 
 # Core initialization resolves BLOCK and SLOT but does not write partitions.
 [ -s Image.lz4 ] && [ -s dtb ] && [ -s dtbo.img ] || abort "Missing kernel or device-tree payload."
@@ -67,4 +83,5 @@ ui_print "Partition backups: $backup"
 split_boot
 flash_boot
 flash_generic dtbo
+
 

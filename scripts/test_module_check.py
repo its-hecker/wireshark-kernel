@@ -66,7 +66,12 @@ def main():
         cases = [
             ('same ABI', {}, True, ''),
             ('compiler adds supported stack guard', {'imports': {'module_layout': 0x1234, 'api_fn': 0x5678, '__stack_chk_guard': 0x8f678b07}}, True, ''),
-            ('different release', {'version': '4.14.261 incompatible'}, False, 'vermagic'),
+            ('Lineage release with matching ABI', {'version': '4.14.357-openela SMP preempt mod_unload modversions aarch64'}, True, ''),
+            ('other versioned release with matching ABI', {'version': '4.14.350-custom SMP preempt mod_unload modversions aarch64'}, True, ''),
+            ('different release and flags', {'version': '4.14.261 incompatible'}, False, 'vermagic'),
+            ('missing MODVERSIONS flag', {'version': '4.14.357-openela SMP preempt mod_unload aarch64'}, False, 'MODVERSIONS required'),
+            ('different preemption mode', {'version': '4.14.357-openela SMP mod_unload modversions aarch64'}, False, 'vermagic'),
+            ('Lineage release with bad ABI', {'version': '4.14.357-openela SMP preempt mod_unload modversions aarch64', 'imports': {'module_layout': 0x1235}}, False, 'module_layout'),
             ('different module', {'name': 'other'}, False, 'name'),
             ('changed imported ABI', {'imports': {'module_layout': 0x1234, 'api_fn': 0x5679}}, False, 'ABI mismatch for api_fn'),
             ('unknown kernel import', {'imports': {'module_layout': 0x1234, 'unknown': 0x5678}}, False, 'does not export unknown'),
@@ -94,7 +99,8 @@ def main():
         installer = (project / 'anykernel.sh').read_text().split('case "$SLOT"')[0]
         tools = root / 'tools'
         tools.mkdir()
-        (tools / 'ak3-core.sh').write_text('abort() { echo "$*" >&2; exit 1; }\nui_print() { echo "$*"; }\n')
+        (tools / 'ak3-core.sh').write_text('abort() { echo "$*" >&2; exit 1; }\nui_print() { echo "$*"; }\n'
+                                        'getprop() { [ "$1" = ro.product.device ] && echo "${TEST_DEVICE-coral}"; }\n')
         (tools / 'module-check').symlink_to(checker)
         refs, vendor = root / 'module-reference', root / 'vendor'
         refs.mkdir()
@@ -110,6 +116,7 @@ def main():
         (root / 'preflight.sh').write_text(installer)
         for label, settings, success, message in [
             ('hash differs but ABI matches', {'imports': {'module_layout': 0x1234, 'api_fn': 0x5678, '__stack_chk_guard': 0x8f678b07}}, True, 'ABI checks passed'),
+            ('Lineage release passes preflight', {'version': '4.14.357-openela SMP preempt mod_unload modversions aarch64'}, True, 'ABI checks passed'),
             ('bad ABI stops before writes', {'imports': {'module_layout': 0x1235}}, False, 'No partitions were changed'),
             ('missing Vendor module', None, False, 'unavailable. Mount Vendor'),
         ]:
@@ -124,8 +131,25 @@ def main():
             assert (result.returncode == 0) == success, (label, result.stdout, result.stderr)
             assert marker.exists() == success, label
             assert message in result.stdout + result.stderr, (label, result.stdout, result.stderr)
-    print('18 module ABI and installer-preflight regression cases passed')
+        module(candidate)
+        import os
+        for device, success, message in [
+            ('coral', True, 'Pixel 4 XL (coral)'),
+            ('flame', True, 'Pixel 4 (flame)'),
+            ('sunfish', False, 'coral and flame only'),
+            ('', False, 'coral and flame only'),
+        ]:
+            marker.unlink(missing_ok=True)
+            result = subprocess.run(['sh', 'preflight.sh'], cwd=root, capture_output=True, text=True,
+                                    env={**os.environ, 'TEST_DEVICE': device})
+            assert (result.returncode == 0) == success, (device, result.stdout, result.stderr)
+            assert marker.exists() == success, device
+            assert message in result.stdout + result.stderr, (device, result.stdout, result.stderr)
+            assert 'Maintainer: Hecker (@its-hecker)' in result.stdout
+            assert 'https://t.me/pixel4seriesupdates' in result.stdout
+    print('28 module ABI and installer-preflight regression cases passed')
 
 
 if __name__ == '__main__':
     main()
+

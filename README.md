@@ -1,50 +1,56 @@
-# WireShark kernel — Pixel 4 XL
+# WireShark kernel — Pixel 4 / Pixel 4 XL
 
-Build and package the kernel source in this repository as an AnyKernel3 ZIP for **coral only**. The default source branch is `cnb-optimized`; select `cnb` under Run workflow to build the unchanged baseline. KernelSU settings come from the source's `floral_defconfig`; the resolved build config is included with every successful artifact.
+One AnyKernel3 ZIP for **Pixel 4 (`flame`) and Pixel 4 XL (`coral`)**, targeting Android 17 Lineage-based ROMs with a compatible floral kernel/module ABI. The default source branch is `cnb-optimized`; `cnb` remains the unchanged baseline. Every artifact includes the resolved `floral_defconfig`, KernelSU settings and provenance.
 
-The initial optimization set adapts three Sultan suspend/wakeup fixes: detect wakeups even when freezing just completed, preserve wakeups from suspend callbacks, and avoid repeated s2idle wake calls. Source details and host regression tests are in the kernel branch's `docs/wireshark-optimization.md` and `tests/suspend_wakeup_host.py`. CPU/GPU clocks, thermal controls and scheduler are unchanged. The optimized branch enables the kernel's supported ThinLTO mode to reduce linker pressure on hosted runners; CFI and shadow call stack remain enabled. No battery or frame-time improvement is claimed until measured on hardware.
+Maintainer: **Hecker (@its-hecker)**. Installation displays the maintainer, repository, [updates channel](https://t.me/pixel4seriesupdates), target ROM family and detected device.
 
-**Known feature limitation:** the pinned KernelSU-Next revision `7d7f214e53d1b229115f094be4fe714601313027` does not define the SUSFS Kconfig options. Although the kernel source contains SUSFS code and defconfig entries, configuration normalization drops those options, so **SUSFS is inactive in the current build**. Enabling it requires a compatible KernelSU/SUSFS integration; a successful compile does not establish SUSFS support.
+## Compatibility
 
-## Repository layout
+Both devices use the shared `floral_defconfig`, boot header v2, a DTB in boot and an 8 MiB DTBO partition. The ZIP preserves the complete floral DTBO table and its ordering, including prototype/EVT/DVT/production variants. Validation requires the production coral/flame overlays and their correct board IDs.
 
-- `main`: build workflows, AnyKernel3 installer, packaging and validation scripts.
-- `cnb`: complete baseline kernel source.
-- `cnb-optimized`: complete kernel source with the initial Sultan suspend/wakeup adaptations and ThinLTO enabled.
+The baseline floral configuration matches LineageOS `lineage-24.0` kernel commit `28f9290ae067d3e7857126eb6312720dbe9c7c80`; WireShark adds its existing ThinLTO, WireGuard and KernelSU settings. Lineage's shared device tree (`6a4ad9f39145ba7c6ff927041b6e9ff453edc1f8`) uses the same kernel/boot layout. This source/configuration comparison does **not** establish that every ROM's compiled drivers match.
 
-The workflow imports pinned source trees once, preserving licenses, KernelSU submodule references and optimization attribution. Existing source branches are never overwritten on subsequent runs. Both build choices clone this repository; further kernel development belongs on `cnb-optimized`.
+**Module ABI preflight runs before any partition write.** Every module built with this kernel must be readable on the ROM. A static ARM64 checker verifies its name, vermagic feature flags, module structure size and legacy Clang CFI mode. Every imported symbol CRC must match the freshly built kernel's complete `Module.symvers`; exported symbol names/CRCs must match the built reference. Different compiler versions and file hashes are accepted only when these checks pass.
+
+Linux ignores the release-name part of vermagic for versioned modules. The preflight follows that rule: a compatible Lineage `4.14.357-openela` module is not rejected solely because the target release is `4.14.357-WireShark+`. Feature flags, a nonempty symbol-version table and `module_layout` are still required. The optimized source also restores normal runtime rejection of mismatched symbol CRCs, removing the old CRC bypass.
+
+Missing/unreadable modules produce a Vendor-mount diagnostic; actual ABI failures identify the incompatible symbol/metadata and stop installation. Vendor is read only. The ZIP does not replace ROM modules; `module-reference/` files are for validation. A matching module archive is included separately for ROM developers.
+
+No ROM-brand restriction is used, and the installer does not infer the installed Android version from recovery. **Android 17 alone does not establish compatibility.** Passing preflight is not a phone boot test. A ROM with a different driver ABI needs a corresponding kernel/module build. Phone boot and hardware tests remain pending on both devices.
 
 ## Build
 
-Open **Actions → Build WireShark → Run workflow**, or push a build-script change to main. Download the `WireShark-coral` artifact when the run succeeds. Extract the outer GitHub artifact ZIP: the inner `WireShark-coral-<commit>.zip` is the flashable ZIP. A SHA256 file, source/tool provenance, build config, and matching module archive are included alongside it.
+Open **Actions → Build WireShark → Run workflow**, or push a build-script change to `main`. After success, download **`WireShark-floral`** and extract the outer artifact ZIP. The inner **`WireShark-floral-<kernel-commit>.zip`** is flashable. SHA256, kernel/builder/tool revisions, resolved configuration and matching modules accompany it.
 
-The first build is experimental until tested on a phone. This is not a universal Android 17 kernel. The Android 13 AOSP Coral kernel build workspace supplies the original build tools; the Wi-Fi and touch drivers are built from the bundled kernel source, ROM compatibility depends on the ROM's kernel/module ABI, not its Android version alone.
+The Android 13 AOSP Coral workspace supplies the original Clang toolchain; this does not restrict the Android userspace version. Wi-Fi and touch drivers build from the bundled source. Packaging checks all built references against actual exports, the static ARM64 checker and both production overlays.
 
-The corrected installer was built successfully in [run 38093277412](https://github.com/its-hecker/wireshark-kernel/actions/runs/38093277412), using builder commit `ef4a0966f127ff03437711d0041d8161d8d86104` and source `4919641578c86a0463b1de5ccc1de80d429cfd8c` (`cnb-optimized`). [Download the WireShark-coral artifact](https://github.com/its-hecker/wireshark-kernel/actions/runs/38093277412/artifacts/11685965949) and extract `WireShark-coral-4919641578c8.zip`. Its SHA256 is `9df1d3d0e7c4246cf02449537be38313f4d2ac670bc848e3d225c3e385033872`.
+Regression coverage includes 28 module ABI/installer cases and 8 tests compiling the actual optimized kernel CRC/vermagic functions. Cases cover compatible Lineage release names, changed ABI rejection, coral/flame acceptance, unsupported devices and maintainer output.
 
-Verification passed: 18 host/preflight regression cases, all 27 built reference-module checks, ZIP/reference integrity and a static ARM64 checker with no dynamic-loader dependency. The uploaded InfinityX `adsp_loader_dlkm.ko` passes the checker against this build's actual exports, including all 28 imported CRCs; `__stack_chk_guard` is exported with CRC `0x8f678b07`. The remaining installed ROM modules are checked during installation. Phone flashing and boot testing remain pending.
+The earlier coral correction succeeded in [run 38093277412](https://github.com/its-hecker/wireshark-kernel/actions/runs/38093277412); the uploaded InfinityX Clang 22 `adsp_loader_dlkm.ko` passed all 28 imported CRCs against that build, including `__stack_chk_guard`. That artifact remains coral-only. Use the new `WireShark-floral` artifact for the shared installer. A fresh build and phone boot tests are separate from that earlier driver check.
 
 ## Installation
 
-Use an unlocked Pixel 4 XL and a recovery or root kernel installer that supports AnyKernel3. Keep a known-good boot image and a way to restore it with fastboot. Flash the inner ZIP on the compatible ROM, then reboot.
+Use an unlocked Pixel 4 or Pixel 4 XL with a recovery/root kernel installer supporting AnyKernel3. Flash the inner ZIP on a ROM whose modules pass preflight, then reboot.
 
-The installer checks `coral`, determines the active A/B slot, backs up its boot and dtbo partitions to `/sdcard/WireShark-backups`, and repacks the existing boot image while preserving its ramdisk. It installs the built kernel, DTB and DTBO only into the active slot. It does not wipe data or flash the other slot.
+The installer detects coral/flame and the active A/B slot, backs up boot/DTBO to `/sdcard/WireShark-backups`, and repacks the installed boot while preserving its ramdisk. It installs the kernel, DTB and complete floral DTBO table into that slot. It does not wipe data or flash the other slot.
 
-**Module ABI preflight runs before any partition write.** Every module built with this kernel must be readable on the installed ROM. A static ARM64 checker compares its module name, vermagic, module structure size and legacy Clang CFI mode with the built reference. It checks every imported symbol CRC against the freshly built kernel's complete `Module.symvers`, and checks the module's exported symbol names and CRCs against its reference. An additional compiler-generated import is accepted only when its symbol and CRC exist in the target build. A whole-file SHA256 difference is no longer an installation failure; SHA256 still verifies the reference files inside the package.
+Backups are partition images. Restore the recorded slot with `fastboot flash boot_a <backup>` or `boot_b`, and similarly `dtbo_a` or `dtbo_b`. Use backups from the same device and ROM.
 
-Missing or unreadable modules produce a Vendor-mount diagnostic; actual ABI failures report the incompatible symbol or metadata. Vendor is only read, and the ZIP does not replace the ROM's modules. Reference `.ko` files in `module-reference/` are used for validation only. The separate matching module archive remains available for ROM developers. Passing this preflight is not a hardware boot test or a guarantee that all driver behavior is compatible.
+## Optimizations and features
 
-The original OrangeFox abort on InfinityX was caused by the exact-hash rule. The supplied Clang 22.0.2 `adsp_loader_dlkm.ko` and the Clang 12.0.5 reference have the same vermagic, 896-byte module structure and all 27 shared import CRCs. The ROM driver additionally imports `__stack_chk_guard`, which this source exports. The new checker verifies that import against the actual build exports rather than assuming that a compiler difference is an ABI failure.
+Three adapted Sultan fixes detect wakeups when freezing just completed, preserve wakeups from suspend callbacks and avoid repeated s2idle wake calls. Details/tests are in `docs/wireshark-optimization.md` and `tests/suspend_wakeup_host.py`. CPU/GPU clocks, thermal controls and scheduler are unchanged. ThinLTO reduces linker pressure on hosted runners; CFI and shadow call stack remain enabled. Battery/frame-time improvements require hardware measurements.
 
-Backups are partition images, not data backups. To restore boot use `fastboot flash boot_a <backup>` or `boot_b`, matching the recorded slot; similarly restore `dtbo_a` or `dtbo_b` if needed. Never flash an image from a different device or ROM.
+**Known limitation:** KernelSU-Next pin `7d7f214e53d1b229115f094be4fe714601313027` lacks SUSFS Kconfig definitions. Configuration normalization drops those settings, so **SUSFS is inactive**. Enabling it requires a compatible KernelSU/SUSFS integration.
 
-## Sources and licensing
+## Repository and sources
 
-- Kernel source: this repository's `cnb` and `cnb-optimized` branches (GPL-2.0 and source-specific notices)
-- Import origin: https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14; exact source revisions are recorded in `scripts/import-source.sh` and the import commits
-- KernelSU-Next: the source repository's pinned submodule
-- Build manifest: https://android.googlesource.com/kernel/manifest/ branch `android-msm-coral-4.14-android13`
-- Installer: https://github.com/osm0sis/AnyKernel3 (upstream license retained in ZIP)
+- `main`: workflow, installer, packaging and validation.
+- `cnb`: unchanged complete baseline source.
+- `cnb-optimized`: complete source, Sultan adaptations, ThinLTO and restored module CRC rejection.
+- Import origin: https://github.com/its-hecker/infinity_cnb_kernel_google_msm-4.14; exact revisions in `scripts/import-source.sh`.
+- Lineage baseline: https://github.com/LineageOS/android_kernel_google_msm-4.14 and https://github.com/LineageOS/android_device_google_coral.
+- Build manifest: https://android.googlesource.com/kernel/manifest/ (`android-msm-coral-4.14-android13`).
+- Installer: https://github.com/osm0sis/AnyKernel3; pinned revision and upstream license retained.
 
-Build output records exact kernel, submodule, manifest-project and installer revisions. Consult the original source repositories for their licenses.
+Source branches are imported once and never overwritten by subsequent workflows. Kernel development belongs on `cnb-optimized`. Kernel licensing is GPL-2.0 with source-specific notices; licenses, KernelSU submodule references and optimization attribution are retained.
 

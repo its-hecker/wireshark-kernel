@@ -4,6 +4,49 @@ import struct
 import sys
 import zipfile
 
+
+def fdt_root_properties(blob):
+    if len(blob) < 40:
+        raise SystemExit('Truncated FDT header')
+    magic, total, nodes, strings, reserved, version, compatible, cpu, string_size, node_size = struct.unpack_from('>10I', blob)
+    if magic != 0xD00DFEED or total != len(blob) or nodes + node_size > total or strings + string_size > total:
+        raise SystemExit('Invalid FDT bounds')
+    pos, limit, depth, properties = nodes, nodes + node_size, 0, {}
+    while pos + 4 <= limit:
+        token, = struct.unpack_from('>I', blob, pos)
+        pos += 4
+        if token == 1:
+            end = blob.find(b'\0', pos, limit)
+            if end < 0:
+                raise SystemExit('Unterminated FDT node')
+            pos = (end + 4) & ~3
+            depth += 1
+        elif token == 2:
+            depth -= 1
+            if depth < 0:
+                raise SystemExit('Invalid FDT nesting')
+        elif token == 3:
+            if pos + 8 > limit:
+                raise SystemExit('Truncated FDT property')
+            size, name_offset = struct.unpack_from('>2I', blob, pos)
+            pos += 8
+            if pos + size > limit or name_offset >= string_size:
+                raise SystemExit('Invalid FDT property bounds')
+            end = blob.find(b'\0', strings + name_offset, strings + string_size)
+            if end < 0:
+                raise SystemExit('Unterminated FDT property name')
+            if depth == 1:
+                properties[blob[strings + name_offset:end]] = blob[pos:pos + size]
+            pos = (pos + size + 3) & ~3
+        elif token == 4:
+            continue
+        elif token == 9 and depth == 0:
+            return properties
+        else:
+            raise SystemExit('Invalid FDT token')
+    raise SystemExit('Missing FDT end token')
+
+
 with zipfile.ZipFile(sys.argv[1]) as archive:
     if archive.testzip() is not None:
         raise SystemExit('ZIP CRC failure')
@@ -29,12 +72,25 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     magic, total, header, entry, count, entries, page, version = struct.unpack_from('>8I', dtbo)
     if magic != 0xD7B7AB1E or total != len(dtbo) or header < 32 or entry < 32 or not count or entries + entry * count > total or total > 8388608:
         raise SystemExit('Invalid DTBO table')
+    production_boards = set()
     for index in range(count):
         size, offset = struct.unpack_from('>II', dtbo, entries + index * entry)
         if offset + size > total or size < 40 or dtbo[offset:offset + 4] != b'\xd0\x0d\xfe\xed':
             raise SystemExit('Invalid DTBO entry')
+        props = fdt_root_properties(dtbo[offset:offset + size])
+        if b'google,floral-sm8150\0' not in props.get(b'compatible', b''):
+            raise SystemExit('DTBO is not a floral overlay')
+        model = props.get(b'model', b'')
+        board = props.get(b'qcom,board-id', b'')
+        if model == b'Google Inc. MSM sm8150 Coral\0' and board == struct.pack('>2I', 0x051e05, 0):
+            production_boards.add('coral')
+        if model == b'Google Inc. MSM sm8150 Flame\0' and board == struct.pack('>2I', 0x061e05, 0):
+            production_boards.add('flame')
+    if production_boards != {'coral', 'flame'}:
+        raise SystemExit('DTBO must include production overlays for coral and flame')
     script = archive.read('anykernel.sh').decode()
-    for required in ('device.name1=coral', 'IS_SLOT_DEVICE=1', 'split_boot', 'flash_boot', 'flash_generic dtbo'):
+    for required in ('device.name1=coral', 'device.name2=flame', 'IS_SLOT_DEVICE=1',
+                     'Maintainer: Hecker (@its-hecker)', 'split_boot', 'flash_boot', 'flash_generic dtbo'):
         if required not in script:
             raise SystemExit(f'Missing installer requirement: {required}')
     manifest = archive.read('modules.sha256').decode().splitlines()
@@ -56,5 +112,6 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
     for name in ('anykernel.sh', 'META-INF/com/google/android/update-binary', 'tools/module-check'):
         if not (archive.getinfo(name).external_attr >> 16) & 0o111:
             raise SystemExit(f'Installer is not executable: {name}')
-print('ZIP structure, device/slot guards, kernel, DTB, DTBO, static ABI checker and module references validated')
+print('ZIP structure, coral/flame guards and production overlays, maintainer, kernel, static ABI checker and module references validated')
+
 
