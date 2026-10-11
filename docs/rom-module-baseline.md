@@ -63,4 +63,7 @@ original DTB and header settings were verified unchanged. No DTBO payload
 or partition write is involved. See
 [the temporary test guide](https://github.com/its-hecker/wireshark-kernel/blob/main/docs/boot-recovery.md#validated-temporary-diagnostic-image).
 
-No phone test of the diagnostic image has yet been performed.
+On 2026-10-12 (Asia/Karachi), the maintainer reported a Google-splash hang
+and no ADB after the requested temporary test. The actual fastboot command
+output is still needed to confirm the loaded image. This is a reported
+failed device test, not a bootable fix; crash evidence is pending.
