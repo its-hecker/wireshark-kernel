@@ -1,5 +1,16 @@
 # Restored-ROM diagnostic build profile
 
+> **Device-test update — 2026-10-12 (Asia/Karachi):** The maintainer reports
+> that the requested temporary test remains at the Google splash and ADB
+> reports no devices. The intended image is
+> `WireShark-coral-temporary-72c95de548e8.img`; the actual fastboot command
+> output has not yet been supplied. Treat this diagnostic image as a failed
+> reported test, not a bootable fix. Recover using the installed working
+> boot/recovery and collect pstore before a normal Android reboot. Do not
+> flash the diagnostic image or ZIP. The earlier supplied recovery logs
+> describe a rejected installation of the older `332ebd1b8867` ZIP, not
+> a crash trace from this temporary test. Root cause remains unconfirmed.
+
 The phone boots again after restoring its pre-flash boot backup. Keep that
 working kernel installed while comparing the full ROM module set. The boot
 failure has not been tied to a confirmed kernel panic.
