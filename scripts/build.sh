@@ -14,9 +14,38 @@ git config --global user.email 'builder@users.noreply.github.com'
 repo init -u https://android.googlesource.com/kernel/manifest -b android-msm-coral-4.14-android13 --depth=1
 repo sync -c -j4 --no-tags --fail-fast
 rm -rf private/msm-google
-kernel_ref="${KERNEL_REF:-cnb-optimized}"
+kernel_ref="${KERNEL_REF:-cnb-boot-diagnostic}"
 git clone --depth=1 --branch "$kernel_ref" --recurse-submodules https://github.com/its-hecker/wireshark-kernel.git private/msm-google
 kernel_sha=$(git -C private/msm-google rev-parse HEAD)
+grep -Fxq '# CONFIG_THINLTO is not set' private/msm-google/arch/arm64/configs/floral_defconfig || { echo "Diagnostic source must use Full LTO" >&2; exit 1; }
+grep -Fxq 'CONFIG_CFI_CLANG=y' private/msm-google/arch/arm64/configs/floral_defconfig || { echo "Diagnostic source must retain CFI" >&2; exit 1; }
+# Match the compiler and Full LTO profile extracted from the restored ROM kernel.
+# This is a diagnostic build profile, not a confirmed phone boot fix.
+clang_commit=6d497adf6103f63e788baef87e8f9d05b651656f
+clang_checkout="$workspace/toolchains/aosp-clang"
+clang_path=toolchains/aosp-clang/clang-r596125
+if [ ! -d "$clang_checkout/.git" ]; then
+  mkdir -p "$clang_checkout"
+  git init "$clang_checkout"
+  git -C "$clang_checkout" remote add origin https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
+fi
+git -C "$clang_checkout" fetch --filter=blob:none --depth=1 origin "$clang_commit"
+git -C "$clang_checkout" sparse-checkout init --cone
+git -C "$clang_checkout" sparse-checkout set clang-r596125
+git -C "$clang_checkout" checkout --detach "$clang_commit"
+[ "$(git -C "$clang_checkout" rev-parse HEAD)" = "$clang_commit" ]
+LD_LIBRARY_PATH="$workspace/$clang_path/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+  "$workspace/$clang_path/bin/clang" --version > "$project/dist/clang-version.txt"
+for marker in 'Android (15071444,' 'based on r596125' 'clang version 22.0.2' 'de03d430485c884861198b25459851f429cbdbad'; do
+  grep -Fq "$marker" "$project/dist/clang-version.txt" || {
+    echo "Diagnostic toolchain does not match the restored kernel: $marker" >&2
+    exit 1
+  }
+done
+printf 'Repository: %s\nCommit: %s\nDirectory: %s\nLTO: full\nStatus: diagnostic, no phone boot verification\n' \
+  'https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86' \
+  "$clang_commit" "$clang_path" > "$project/dist/toolchain-provenance.txt"
+cat "$project/dist/clang-version.txt"
 printf '%s\n' "$kernel_ref" > "$project/dist/kernel-ref.txt"
 if [ -f private/msm-google/tests/suspend_wakeup_host.py ]; then
   python3 private/msm-google/tests/suspend_wakeup_host.py
@@ -32,6 +61,9 @@ printf '%s\n' "$kernel_sha" > "$project/dist/kernel-commit.txt"
 cat > private/msm-google/build.config.wireshark <<'CONFIG'
 KERNEL_DIR=private/msm-google
 . ${ROOT_DIR}/${KERNEL_DIR}/build.config.floral.common.clang
+CLANG_PREBUILT_BIN=toolchains/aosp-clang/clang-r596125/bin
+LD_LIBRARY_PATH=${ROOT_DIR}/toolchains/aosp-clang/clang-r596125/lib64:${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH
 FILES="${FILES} Module.symvers"
 POST_DEFCONFIG_CMDS=""
 # Wi-Fi and touch drivers are already built from this source tree.
