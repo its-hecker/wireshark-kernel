@@ -1,5 +1,7 @@
 # WireShark kernel — Pixel 4 / Pixel 4 XL
 
+> **Boot failure reported — 2026-10-11:** `WireShark-floral-ad869a2e1f74.zip` was reported to hang at the Google logo after flashing. **Do not flash this artifact while the cause is under investigation.** A successful compile and module preflight did not establish boot compatibility. See [recovery and diagnostic steps](docs/boot-recovery.md) to restore the pre-flash boot/DTBO backups without wiping data.
+
 One AnyKernel3 ZIP for **Pixel 4 (`flame`) and Pixel 4 XL (`coral`)**, targeting Android 17 Lineage-based ROMs with a compatible floral kernel/module ABI. The default source branch is `cnb-optimized`; `cnb` remains the unchanged baseline. Every artifact includes the resolved `floral_defconfig`, KernelSU settings and provenance.
 
 Maintainer: **Hecker (@its-hecker)**. Installation displays the maintainer, repository, [updates channel](https://t.me/pixel4seriesupdates), target ROM family and detected device.
@@ -26,17 +28,17 @@ The Android 13 AOSP Coral workspace supplies the original Clang toolchain; this 
 
 Regression coverage includes 29 module ABI/installer cases and 8 tests compiling the actual optimized kernel CRC/vermagic functions. Cases cover compatible Lineage release names, changed ABI rejection, coral/flame acceptance, recovery property fallback, unsupported devices and maintainer output.
 
-The shared floral build succeeded in [run 38161422852](https://github.com/its-hecker/wireshark-kernel/actions/runs/38161422852), using builder `d8109a051e1b3c8f3da8e58f903e6033a3e7e4fd` and source `ad869a2e1f74090fea2ff402d1261e9206ba13cd`. [Download the WireShark-floral artifact](https://github.com/its-hecker/wireshark-kernel/actions/runs/38161422852/artifacts/11711555318) and extract **`WireShark-floral-ad869a2e1f74.zip`**. Its SHA256 is `da3f793e5d34cd74686e2e30ec96251467ccadb2b920a2f7eea926eb89610e66`. Downloaded-artifact verification passed: ZIP/checksum integrity, both production overlays and device guards, all 27 built references and the uploaded InfinityX ADSP module against this build's actual exports (all 28 imports). Phone flashing and full boot/hardware testing remain pending.
+The shared floral build compiled successfully in [run 38161422852](https://github.com/its-hecker/wireshark-kernel/actions/runs/38161422852), using builder `d8109a051e1b3c8f3da8e58f903e6033a3e7e4fd` and source `ad869a2e1f74090fea2ff402d1261e9206ba13cd`. Its inner ZIP is `WireShark-floral-ad869a2e1f74.zip` (SHA256 `da3f793e5d34cd74686e2e30ec96251467ccadb2b920a2f7eea926eb89610e66`). **The first reported phone test failed to boot; this artifact is not recommended for installation.** ZIP integrity, both production overlays/device guards and the built reference modules passed validation. Only one actual ROM driver, the uploaded InfinityX ADSP module, was independently checked against this kernel's exports. Those checks did not validate the entire installed ROM driver set or prove hardware boot compatibility.
 
-The earlier coral correction succeeded in [run 38093277412](https://github.com/its-hecker/wireshark-kernel/actions/runs/38093277412); the uploaded InfinityX Clang 22 `adsp_loader_dlkm.ko` passed all 28 imported CRCs against that build, including `__stack_chk_guard`. That artifact remains coral-only. Use the new `WireShark-floral` artifact for the shared installer. A fresh build and phone boot tests are separate from that earlier driver check.
+The earlier coral correction succeeded in [run 38093277412](https://github.com/its-hecker/wireshark-kernel/actions/runs/38093277412); the uploaded InfinityX Clang 22 `adsp_loader_dlkm.ko` passed all 28 imported CRCs against that build, including `__stack_chk_guard`. That artifact remains coral-only and also has no confirmed successful phone boot. It is not an established rollback image; use your own pre-flash backups or images from the exact installed ROM build.
 
 ## Installation
 
-Use an unlocked Pixel 4 or Pixel 4 XL with a recovery/root kernel installer supporting AnyKernel3. Flash the inner ZIP on a ROM whose modules pass preflight, then reboot.
+The reported failing artifact above must not be installed again. The following describes the installer for future validated builds on an unlocked Pixel 4 or Pixel 4 XL with a recovery/root kernel installer supporting AnyKernel3.
 
 The installer detects coral/flame and the active A/B slot, backs up boot/DTBO to `/sdcard/WireShark-backups`, and repacks the installed boot while preserving its ramdisk. It installs the kernel, DTB and complete floral DTBO table into that slot. It does not wipe data or flash the other slot.
 
-Backups are partition images. Restore the recorded slot with `fastboot flash boot_a <backup>` or `boot_b`, and similarly `dtbo_a` or `dtbo_b`. Use backups from the same device and ROM.
+Backups are partition images. Restore both boot and DTBO for the recorded slot, using backups from this device and the same ROM. See [the recovery guide](docs/boot-recovery.md) for Windows commands, slot checks and crash-log collection.
 
 ## Optimizations and features
 
