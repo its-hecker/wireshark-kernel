@@ -26,6 +26,15 @@ not proof that either difference caused the failed boot.
 - Artifacts include compiler version and toolchain provenance in addition
   to the source/builder metadata. Artifact label is `WireShark-floral-diagnostic`.
 
+The first diagnostic run (`38168396560`) executed the exact compiler,
+compiled the kernel objects and reached Full LTO linking. Its final
+resource sample showed about 15 GiB RAM and 15 GiB swap used, followed by
+a runner shutdown and exit 143; no flashable artifact was produced.
+The retry provisions 48 GiB additional swap (with a free-disk check) and
+limits LLD to one worker and one Full LTO codegen partition. This preserves
+the selected kernel configuration. Memory exhaustion is strongly suggested
+by the resource trace but the shutdown log does not identify its cause.
+
 The actual ROM's complete `/vendor/lib/modules` archive was received on
 2026-10-11. All 27 modules pass the failed build's static ABI checker,
 including imported/exported CRCs, vermagic feature flags, module layout,

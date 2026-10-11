@@ -41,11 +41,14 @@ jobs:
           df -h "$GITHUB_WORKSPACE"
       - name: Add linker swap space
         run: |
-          sudo fallocate -l 12G /mnt/wireshark-swap
+          wireshark_free_kib=$(df --output=avail -k /mnt | tail -n 1)
+          test "$wireshark_free_kib" -ge $((56 * 1024 * 1024)) || { echo "Insufficient disk space for Full LTO swap and build output" >&2; exit 1; }
+          sudo fallocate -l 48G /mnt/wireshark-swap
           sudo chmod 600 /mnt/wireshark-swap
           sudo mkswap /mnt/wireshark-swap
           sudo swapon /mnt/wireshark-swap
           free -h
+          df -h /mnt "$GITHUB_WORKSPACE"
       - name: Install build dependencies
         run: |
           sudo apt-get update

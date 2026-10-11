@@ -47,6 +47,16 @@ printf 'Repository: %s\nCommit: %s\nDirectory: %s\nLTO: full\nStatus: diagnostic
   'https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86' \
   "$clang_commit" "$clang_path" > "$project/dist/toolchain-provenance.txt"
 cat "$project/dist/clang-version.txt"
+# Keep the complete Full LTO program, with one linker worker/codegen partition.
+# The first attempt nearly filled 16 GiB RAM plus 15 GiB swap before the
+# runner shut down; the workflow now reserves 48 GiB of additional swap.
+cat > "$workspace/toolchains/wireshark-ld.lld" <<'LINKER'
+#!/bin/sh
+exec "$(dirname "$0")/aosp-clang/clang-r596125/bin/ld.lld" --threads=1 --lto-partitions=1 "$@"
+LINKER
+chmod 755 "$workspace/toolchains/wireshark-ld.lld"
+"$workspace/toolchains/wireshark-ld.lld" --version
+printf 'Linker workers: 1\nLTO codegen partitions: 1\n' >> "$project/dist/toolchain-provenance.txt"
 printf '%s\n' "$kernel_ref" > "$project/dist/kernel-ref.txt"
 if [ -f private/msm-google/tests/suspend_wakeup_host.py ]; then
   python3 private/msm-google/tests/suspend_wakeup_host.py
@@ -63,6 +73,7 @@ cat > private/msm-google/build.config.wireshark <<'CONFIG'
 KERNEL_DIR=private/msm-google
 . ${ROOT_DIR}/${KERNEL_DIR}/build.config.floral.common.clang
 CLANG_PREBUILT_BIN=toolchains/aosp-clang/clang-r596125/bin
+LD=${ROOT_DIR}/toolchains/wireshark-ld.lld
 LD_LIBRARY_PATH=${ROOT_DIR}/toolchains/aosp-clang/clang-r596125/lib:${LD_LIBRARY_PATH}
 export LD_LIBRARY_PATH
 FILES="${FILES} Module.symvers"
