@@ -9,8 +9,8 @@ All 27 module filenames match the built reference set in
 against every supplied module and the failed build's `Module.symvers`
 passes 27/27. There are no missing reference modules. Checks include:
 
-- ARM64 ELF format, module name, vermagic feature flags and module size.
-- Every imported symbol CRC, including `module_layout`.
+- ARM64 ELF format, module name, vermagic feature flags and module-structure size.
+- All 2,555 imported symbol CRC records, including `module_layout`.
 - Exported symbol names/counts and CRCs.
 - Legacy-CFI mode compatibility.
 
@@ -18,6 +18,25 @@ An exploratory scan of ARM64 `__cfi_check` comparison constants finds
 matching equality-comparison ID sets for 26/27 module pairs. Wi-Fi differs
 in generated checks. Compiler transformations can change these sets, so
 this scan cannot identify a CFI failure or replace a boot test.
+
+Every supplied module's compiler metadata identifies Clang 22.0.2, build
+`15071444`, matching the restored boot image. The named CFI type-ID symbol
+sets also match the old references for all 27 modules, including Wi-Fi's
+731 named type-ID symbols. This is a partial check: generated function
+checks can differ even when those symbol names match.
+
+Relocation inspection associates two differing Wi-Fi comparison IDs with
+`qdf_vtrace_msg` and `qdf_trace_msg_cmn`:
+
+| Function | ROM (Clang 22) | Failed-build reference (Clang 12) |
+| --- | --- | --- |
+| qdf_vtrace_msg | a55233600ebbea77 | a75ce6606d1ef09c |
+| qdf_trace_msg_cmn | d685b5b4c2309c98 | 7a9b32b57420cb89 |
+
+This establishes generated CFI metadata differences, without showing a
+failing runtime call or proving that CFI caused the reported bootloop.
+The ABI preflight's CFI-mode check does not compare these type IDs. The
+Clang 22 diagnostic build must be checked against the ROM modules again.
 
 These results rule out the mismatches checked by this preflight for the
 uploaded modules. They do not establish runtime CFI correctness, correct
