@@ -1,6 +1,6 @@
 # WireShark kernel — Pixel 4 / Pixel 4 XL
 
-> **Boot failure reported — 2026-10-11:** `WireShark-floral-ad869a2e1f74.zip` was reported to hang at the Google logo after flashing. **Do not flash this artifact while the cause is under investigation.** A successful compile and module preflight did not establish boot compatibility. See [recovery and diagnostic steps](docs/boot-recovery.md) to restore the pre-flash boot/DTBO backups without wiping data.
+> **Boot failure reported — 2026-10-11:** `WireShark-floral-ad869a2e1f74.zip` was reported to hang at the Google logo after flashing. **Do not flash this artifact while the cause is under investigation.** A successful compile and module preflight did not establish boot compatibility. The uploaded slot-a backup contains OrangeFox; recovery shares the replaced boot kernel, so a kernel boot failure can also block it. The root cause is still unconfirmed. See [recovery and diagnostic steps](docs/boot-recovery.md) to capture the failed image and restore the pre-flash boot/DTBO backups without wiping data.
 
 One AnyKernel3 ZIP for **Pixel 4 (`flame`) and Pixel 4 XL (`coral`)**, targeting Android 17 Lineage-based ROMs with a compatible floral kernel/module ABI. The default source branch is `cnb-optimized`; `cnb` remains the unchanged baseline. Every artifact includes the resolved `floral_defconfig`, KernelSU settings and provenance.
 

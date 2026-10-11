@@ -7,12 +7,65 @@ after flashing the newly delivered floral kernel. The expected artifact is
 `WireShark-floral-ad869a2e1f74.zip` from
 [run 38161422852](https://github.com/its-hecker/wireshark-kernel/actions/runs/38161422852).
 Confirm the actual flashed filename in the recovery log before attributing
-the report to this exact build. No failed-boot crash log or boot image has
-been supplied yet, so the root cause remains unconfirmed.
+the report to this exact build. The uploaded archive now provides pre-flash images and an OrangeFox
+startup log, but no failed-boot crash log or post-flash image, so the root
+cause remains unconfirmed.
 
 Do not flash this artifact again or wipe data to resolve this kernel failure.
 The installer changes only boot and DTBO in the selected slot. Restore the
 pre-flash images from the same device/ROM.
+
+## What the uploaded backup establishes
+
+The supplied `logs.zip` contains pre-flash `boot_a.img` and `dtbo_a.img`
+from `20261011-203621-1426_a`, an OrangeFox startup log and an empty
+pstore directory. It does not contain the image actually written by the
+kernel installer or the ZIP installation transcript.
+
+The pre-flash boot image uses header v2 and contains the previously working
+Clang 22 `4.14.357-WireShark+` kernel plus a gzip recovery ramdisk.
+That ramdisk contains `system/bin/recovery`, `sbin/foxstart.sh`,
+OrangeFox resources and recovery init files. OrangeFox was present in the
+backed-up boot partition.
+
+Coral uses `BOARD_USES_RECOVERY_AS_BOOT := true`; recovery shares the
+boot kernel rather than having an independent recovery kernel/partition.
+A replacement kernel that cannot initialize can therefore prevent both
+Android and the installed OrangeFox from starting. Recovery being
+inaccessible does not by itself establish that its files were erased.
+
+An offline host magiskboot repack of this backup with the new kernel/DTB
+preserved the decompressed ramdisk byte for byte (SHA256
+`45cf00555aa61d591d53d084fed1d993e7e5ffd8fa90b58e1fddec67cbd80a81`).
+This tests repacking with a native host tool; it is not a readback of the
+actual flash and does not verify the ARM recovery tool's output on the phone.
+
+The extracted working-kernel configuration differs from this build's
+resolved configuration only in `CONFIG_THINLTO` (working: disabled/full
+LTO; new build: enabled). Its compiler is Clang 22 rather than Clang 12.
+Those are investigation leads, not established causes. The ROM backup's
+DTB/DTBO contents and table ordering also differ from the new payloads;
+comparison against an earlier unboot-tested ZIP cannot rule out a
+device-tree problem.
+
+## Capture the actual failed image before restoring, if still available
+
+If slot a still contains the failed kernel, temporarily boot the known-working
+OrangeFox and collect the actual partition image:
+
+```bat
+adb shell "dd if=/dev/block/bootdevice/by-name/boot_a of=/sdcard/WireShark-failed-boot_a.img bs=4096"
+adb pull /sdcard/WireShark-failed-boot_a.img
+```
+
+This is a read of the boot partition into a separate file, not a flash.
+If the kernel has already been rolled back, do not reflash it to obtain
+this image. Report the recovery/rollback outcome instead.
+
+The readback allows checking the kernel actually installed, header and
+device tree, plus whether the OrangeFox ramdisk was retained. An empty
+pstore directory leaves the early boot failure unconfirmed even when
+offline packaging checks pass.
 
 ## 1. Enter recovery and preserve the evidence
 
@@ -114,6 +167,7 @@ restores the original device-tree pairing.
 
 Provide:
 
+- If still available, the actual failed boot partition image as described above.
 - The flashed ZIP filename and `recovery.log` (including slot and backup path).
 - All files pulled from `/sys/fs/pstore`, particularly console/dmesg ramoops.
 - Whether restoring both pre-flash images made the ROM boot again.
