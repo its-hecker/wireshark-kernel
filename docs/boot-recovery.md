@@ -42,6 +42,60 @@ its recovery ramdisk and original DTB and leave on-device DTBO untouched.
 Do not flash another ZIP or reinstall the failed kernel merely to obtain
 a crash log. No diagnostic phone boot has been verified yet.
 
+## Validated temporary diagnostic image
+
+[Diagnostic run 38170155669](https://github.com/its-hecker/wireshark-kernel/actions/runs/38170155669) succeeded using source
+`72c95de548e83e9113080d6827b822d0302e9d8d` and builder
+`e0e33d10e19ca718cc3d146f4041029179efe693`. The compiler exactly matches
+the restored kernel: Clang 22.0.2, r596125, build 15071444, LLVM de03d430.
+Full LTO, enforcing CFI, shadow call stack and strict CRC checks remain.
+The artifact's configuration matches its embedded config and the supplied
+working kernel's configuration, with no resolved-setting differences.
+
+All 27 actual ROM modules pass the fresh ABI checks, including 2,555
+imported CRC records. Named CFI type-ID sets and exploratory equality
+comparison-ID sets match for all 27 references, including Wi-Fi. This is
+a partial metadata comparison, not proof of runtime CFI correctness or
+a confirmed explanation of the previous boot failure.
+
+The separately delivered `WireShark-coral-temporary-72c95de548e8.img`
+is 67,108,864 bytes, SHA256
+`7f06be92b44c65fa0f953f903d1dca8eb7cc08464622e6fdac674bcb591fa1eb`.
+It uses the supplied coral backup
+`180af97120434546f49b36a63477008c69d34c3cf163caff9ad2fdcde69e4b95`.
+Only the kernel payload changes. Its compressed recovery ramdisk, original
+DTB and header settings are unchanged. It is specific to this backup and
+ROM; do not use it on flame or flash it to a partition.
+
+With the delivered image in the current Windows CMD folder:
+
+```bat
+adb reboot bootloader
+fastboot getvar product
+```
+
+Confirm the product is `coral`, then temporarily load the image:
+
+```bat
+fastboot boot WireShark-coral-temporary-72c95de548e8.img
+```
+
+This downloads and boots the image in RAM without flashing boot or DTBO.
+The backup contains OrangeFox, so this test may start recovery rather than
+Android. Report which starts and collect `adb shell cat /proc/version`.
+Recovery starting establishes only that the new kernel can start recovery,
+not Android compatibility. If Android starts, check Wi-Fi, audio and touch
+and send the kernel version before considering another installation.
+
+If it hangs, return to the bootloader with Power + Volume Down and choose
+the installed Recovery Mode. The temporary command did not replace the
+restored boot image. Collect `adb pull /sys/fs/pstore pstore-temporary-test`
+from the working recovery before booting Android normally. Do not repeat a
+failed boot just to obtain logs. An empty pstore leaves the failure unresolved.
+
+No diagnostic phone boot has been verified, and the compiled diagnostic
+AnyKernel ZIP also replaces DTB/DTBO. It is not the first device test.
+
 ## What the uploaded backup establishes
 
 The supplied `logs.zip` contains pre-flash `boot_a.img` and `dtbo_a.img`
@@ -215,13 +269,14 @@ for the kernel log from the failed Android boot.
   symbol CRCs. It is a possible regression point if additional installed
   ROM modules were not covered by the ZIP's preflight; it has not been
   identified as the cause.
-- The new kernel is built with AOSP Clang 12; the user's earlier
+- The reported failing kernel was built with AOSP Clang 12; the user's earlier
   `/proc/version` identifies their ROM kernel as Clang 22. Matching
   symbol CRCs and presence of legacy CFI alone do not prove every
   callback/type or runtime driver interaction is compatible.
-- The installer checked the 27 modules built by this configuration,
-  not every driver that the installed ROM might load. Local independent
-  validation had access to only one actual ROM module (ADSP).
+- Initial independent validation had only the ADSP ROM module. The
+  subsequently provided vendor archive covers all 27 built references and
+  passes against both the reported failing build and the new diagnostic
+  build. Runtime driver interactions remain untested.
 - CFI remains enforcing and CRC checks remain enabled. Disabling them
   without diagnosing the failure would hide incompatibility, not establish
   a bootable kernel.
